@@ -30,6 +30,9 @@
         .config-box { background: #F9F9F8; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #EEE; }
         .payment-box { border-top: 2px solid var(--primary); padding-top: 15px; margin-top: 20px; }
         
+        .input-with-unit { position: relative; display: flex; align-items: center; }
+        .unit-label { margin-left: 5px; font-size: 0.8rem; color: #999; white-space: nowrap; width: 20px; }
+
         .display-area { background: #FCFCFB; border: 1px solid #EEE; padding: 20px; border-radius: 10px; margin-top: 20px; }
         .section-title { font-size: 0.85rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; border-left: 3px solid var(--primary); padding-left: 8px; }
         
@@ -41,6 +44,9 @@
         .date-line { font-family: monospace; font-weight: bold; font-size: 1.1rem; color: var(--accent); margin-bottom: 5px; }
 
         .btn-reset { width: 100%; padding: 10px; margin-top: 20px; color: #BBB; border: 1px solid #EEE; background: none; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
+        
+        .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .check-label input[type="checkbox"] { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -62,11 +68,11 @@
     <div class="config-box">
         <div class="row">
             <div class="col">
-                <label><input type="checkbox" id="cleanCheck" checked onchange="calculate(false)"> 清潔保險 (%)</label>
+                <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate(false)"> 清潔保險 (%)</label>
                 <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate(false)">
             </div>
             <div class="col">
-                <label><input type="checkbox" id="retentionCheck" checked onchange="calculate(false)"> 保留款 (%)</label>
+                <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate(false)"> 保留款 (%)</label>
                 <input type="number" id="retentionRate" value="10" step="1" oninput="calculate(false)">
             </div>
         </div>
@@ -82,14 +88,32 @@
     <div class="payment-box">
         <label>付款比例 / 期數 (月)</label>
         <div class="row">
-            <div class="col"><input type="number" id="p1Pct" value="50" oninput="renderDetail()"></div>
-            <div class="col"><input type="number" id="p1Mon" value="0" oninput="renderDetail()"></div>
-            <div class="col" style="flex:0; padding-bottom:10px;">% / 月</div>
+            <div class="col">
+                <div class="input-with-unit">
+                    <input type="number" id="p1Pct" placeholder="比例" oninput="renderDetail()">
+                    <span class="unit-label">%</span>
+                </div>
+            </div>
+            <div class="col">
+                <div class="input-with-unit">
+                    <input type="number" id="p1Mon" placeholder="期數" oninput="renderDetail()">
+                    <span class="unit-label">月</span>
+                </div>
+            </div>
         </div>
         <div class="row">
-            <div class="col"><input type="number" id="p2Pct" value="50" oninput="renderDetail()"></div>
-            <div class="col"><input type="number" id="p2Mon" value="1" oninput="renderDetail()"></div>
-            <div class="col" style="flex:0; padding-bottom:10px;">% / 月</div>
+            <div class="col">
+                <div class="input-with-unit">
+                    <input type="number" id="p2Pct" placeholder="比例" oninput="renderDetail()">
+                    <span class="unit-label">%</span>
+                </div>
+            </div>
+            <div class="col">
+                <div class="input-with-unit">
+                    <input type="number" id="p2Mon" placeholder="期數" oninput="renderDetail()">
+                    <span class="unit-label">月</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -115,23 +139,18 @@
 
         const total = raw + tax;
         
-        // A. 計算清潔費
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
         const cleanFee = hasClean ? Math.round(total * (cRate / 100)) : 0;
 
-        // B. 算出小計 (全額 - 清潔費)
         const subtotal = total - cleanFee;
 
-        // C. 計算保留款 (基數為小計)
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = parseFloat(document.getElementById('retentionRate').value) || 0;
         const retention = hasRetention ? Math.round(subtotal * (rRate / 100)) : 0;
 
-        // D. 最終淨額
         const net = subtotal - retention;
         
-        // 渲染列示文字
         let html = `
             <div>① 全額：${fmt.format(raw)} + ${fmt.format(tax)} = <strong>${fmt.format(total)}</strong></div>
             <div>② 清潔費(${cRate}%)：${fmt.format(total)} × ${cRate}% = <strong>${fmt.format(cleanFee)}</strong></div>
@@ -156,7 +175,12 @@
         const p2Mon = parseInt(document.getElementById('p2Mon').value) || 0;
 
         const pDetail = document.getElementById('paymentDetail');
-        if(net <= 0) { pDetail.innerHTML = ""; return; }
+        
+        // 如果沒有輸入比例或淨額為0，不顯示排程
+        if(net <= 0 || document.getElementById('p1Pct').value === "") { 
+            pDetail.innerHTML = ""; 
+            return; 
+        }
 
         const pay1Amount = Math.round(net * (p1Pct / 100));
         const pay2Amount = net - pay1Amount;
@@ -172,8 +196,10 @@
         html += `<div class="formula">第一期 (${p1Pct}%)：${fmt.format(net)} × ${p1Pct}% = <strong>${fmt.format(pay1Amount)}</strong></div>`;
         html += `<div class="date-line">${getMinguoDate(p1Mon)} &nbsp; $${fmt.format(pay1Amount)}</div>`;
         
-        html += `<div class="formula" style="margin-top:10px;">第二期 (${p2Pct}%)：${fmt.format(net)} - ${fmt.format(pay1Amount)} = <strong>${fmt.format(pay2Amount)}</strong></div>`;
-        html += `<div class="date-line">${getMinguoDate(p2Mon)} &nbsp; $${fmt.format(pay2Amount)}</div>`;
+        if (p1Pct < 100) {
+            html += `<div class="formula" style="margin-top:10px;">第二期 (${p2Pct}%)：${fmt.format(net)} - ${fmt.format(pay1Amount)} = <strong>${fmt.format(pay2Amount)}</strong></div>`;
+            html += `<div class="date-line">${getMinguoDate(p2Mon)} &nbsp; $${fmt.format(pay2Amount)}</div>`;
+        }
 
         pDetail.innerHTML = html;
     }
