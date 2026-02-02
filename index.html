@@ -12,21 +12,31 @@
             --accent: #AF8F6F;
             --text: #4A4A4A;
             --border: #E0DED7;
+            --danger: #e74c3c;
         }
 
-        body { background-color: var(--bg); color: var(--text); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .card { background: var(--card); width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
-        h2 { text-align: center; color: var(--primary); font-weight: 500; margin-bottom: 20px; letter-spacing: 1px; }
+        body { background-color: var(--bg); color: var(--text); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; max-width: 500px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #E0DED7; cursor: pointer; border-radius: 8px 8px 0 0; color: #777; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; }
 
+        .page { display: none; width: 100%; max-width: 500px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card { background: var(--card); width: 100%; padding: 25px; border-radius: 0 0 15px 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; margin-bottom: 20px; }
+        .list-card { background: var(--card); width: 100%; max-width: 850px; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
+        
+        h2 { text-align: center; color: var(--primary); font-weight: 500; margin-bottom: 20px; letter-spacing: 1px; }
         .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; display: flex; flex-direction: column; }
         
         label { font-size: 0.8rem; margin-bottom: 5px; color: #999; }
-        input { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FAFAFA; width: 100%; box-sizing: border-box; }
-        input:focus { border-color: var(--primary); background: #FFF; }
+        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FAFAFA; width: 100%; box-sizing: border-box; }
+        input:focus, select:focus { border-color: var(--primary); background: #FFF; }
         
         #netAmount { font-weight: bold; color: var(--accent); background-color: #FFF9F3; border: 1px solid var(--accent); }
-
         .config-box { background: #F9F9F8; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #EEE; }
         .payment-box { border-top: 2px solid var(--primary); padding-top: 15px; margin-top: 20px; }
         
@@ -43,112 +53,162 @@
         .payment-result { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #DDD; }
         .date-line { font-family: monospace; font-weight: bold; font-size: 1.1rem; color: var(--accent); margin-bottom: 5px; }
 
-        .btn-reset { width: 100%; padding: 10px; margin-top: 20px; color: #BBB; border: 1px solid #EEE; background: none; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
+        .btn-save { width: 100%; padding: 12px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-excel { padding: 10px 20px; background: #217346; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
+        .btn-reset { width: 100%; padding: 10px; margin-top: 10px; color: #BBB; border: 1px solid #EEE; background: none; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
         
         .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
         .check-label input[type="checkbox"] { width: auto; margin: 0; }
+
+        /* 表格與編輯樣式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; overflow: hidden; }
+        th { background-color: #f8f8f8; color: var(--primary); }
+        .editable { cursor: pointer; background-color: #fffdec; border-radius: 4px; padding: 2px 5px; }
+        .editable:hover { background-color: #fff9c4; }
+        .amount-cell { text-align: right; font-family: monospace; }
+        .action-cell { text-align: center; width: 60px; }
+        .btn-del { color: var(--danger); border: none; background: none; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+        
+        .filter-row { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>工程結算明細</h2>
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchPage('calcPage', this)">計算工具</button>
+    <button class="tab-btn" onclick="switchPage('listPage', this)">付款清單</button>
+</div>
 
-    <div class="row">
-        <div class="col">
-            <label>未稅金額</label>
-            <input type="number" id="rawAmount" placeholder="請輸入金額" oninput="calculate(false)">
-        </div>
-        <div class="col">
-            <label>稅額 (5%)</label>
-            <input type="number" id="taxAmount" oninput="calculate(true)">
-        </div>
-    </div>
-
-    <div class="config-box">
+<div id="calcPage" class="page active">
+    <div class="card">
+        <h2>工程結算明細</h2>
         <div class="row">
             <div class="col">
-                <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate(false)"> 清潔保險 (%)</label>
-                <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate(false)">
+                <label>付款公司</label>
+                <select id="companySelect">
+                    <option value="瀞川">瀞川</option>
+                    <option value="聿川">聿川</option>
+                    <option value="長川">長川</option>
+                    <option value="上川">上川</option>
+                </select>
             </div>
             <div class="col">
-                <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate(false)"> 保留款 (%)</label>
-                <input type="number" id="retentionRate" value="10" step="1" oninput="calculate(false)">
+                <label>工程內容 (明細)</label>
+                <input type="text" id="workNote" placeholder="例如：頂美段-弘龍-木地板已完成54戶請款">
             </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col">
-            <label>最終淨額 (可手動修改)</label>
-            <input type="number" id="netAmount" oninput="renderDetail()">
-        </div>
-    </div>
-
-    <div class="payment-box">
-        <label>付款比例 / 期數 (月)</label>
         <div class="row">
             <div class="col">
-                <div class="input-with-unit">
-                    <input type="number" id="p1Pct" placeholder="比例" oninput="renderDetail()">
-                    <span class="unit-label">%</span>
-                </div>
+                <label>未稅金額</label>
+                <input type="number" id="rawAmount" placeholder="請輸入金額" oninput="calculate(false)">
             </div>
             <div class="col">
-                <div class="input-with-unit">
-                    <input type="number" id="p1Mon" placeholder="期數" oninput="renderDetail()">
-                    <span class="unit-label">月</span>
+                <label>稅額 (5%)</label>
+                <input type="number" id="taxAmount" oninput="calculate(true)">
+            </div>
+        </div>
+
+        <div class="config-box">
+            <div class="row">
+                <div class="col">
+                    <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate(false)"> 清潔保險 (%)</label>
+                    <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate(false)">
+                </div>
+                <div class="col">
+                    <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate(false)"> 保留款 (%)</label>
+                    <input type="number" id="retentionRate" value="10" step="1" oninput="calculate(false)">
                 </div>
             </div>
         </div>
+
         <div class="row">
             <div class="col">
-                <div class="input-with-unit">
-                    <input type="number" id="p2Pct" placeholder="比例" oninput="renderDetail()">
-                    <span class="unit-label">%</span>
-                </div>
-            </div>
-            <div class="col">
-                <div class="input-with-unit">
-                    <input type="number" id="p2Mon" placeholder="期數" oninput="renderDetail()">
-                    <span class="unit-label">月</span>
-                </div>
+                <label>最終淨額 (可手動修改)</label>
+                <input type="number" id="netAmount" oninput="renderDetail()">
             </div>
         </div>
+
+        <div class="payment-box">
+            <label>付款比例 / 期數 (月)</label>
+            <div class="row">
+                <div class="col"><div class="input-with-unit"><input type="number" id="p1Pct" placeholder="比例" oninput="renderDetail()"><span class="unit-label">%</span></div></div>
+                <div class="col"><div class="input-with-unit"><input type="number" id="p1Mon" placeholder="期數" oninput="renderDetail()"><span class="unit-label">月</span></div></div>
+            </div>
+            <div class="row">
+                <div class="col"><div class="input-with-unit"><input type="number" id="p2Pct" placeholder="比例" oninput="renderDetail()"><span class="unit-label">%</span></div></div>
+                <div class="col"><div class="input-with-unit"><input type="number" id="p2Mon" placeholder="期數" oninput="renderDetail()"><span class="unit-label">月</span></div></div>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <div class="section-title">階層計算列示</div>
+            <div id="processFormula" class="formula">請輸入資料...</div>
+            <div class="payment-result" id="paymentDetail"></div>
+        </div>
+
+        <button class="btn-save" onclick="saveData()">儲存此筆排程</button>
+        <button class="btn-reset" onclick="location.reload()">重新整理</button>
     </div>
+</div>
 
-    <div class="display-area">
-        <div class="section-title">階層計算列示</div>
-        <div id="processFormula" class="formula">請輸入資料...</div>
-
-        <div class="payment-result" id="paymentDetail"></div>
+<div id="listPage" class="page" style="max-width: 850px;">
+    <div class="list-card">
+        <div class="section-title">付款清單明細 (點擊文字可直接修改)</div>
+        <div class="filter-row">
+            <div>
+                <label style="margin:0">篩選公司：</label>
+                <select id="filterCompany" style="width: auto; padding: 5px;" onchange="renderTable()">
+                    <option value="全部">全部顯示</option>
+                    <option value="瀞川">瀞川</option>
+                    <option value="聿川">聿川</option>
+                    <option value="長川">長川</option>
+                    <option value="上川">上川</option>
+                </select>
+            </div>
+            <button class="btn-excel" onclick="exportToExcel()">匯出 Excel (CSV)</button>
+        </div>
+        <table id="recordTable">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">匯款日期</th>
+                    <th style="width: 50%;">明細</th>
+                    <th style="width: 25%;">金額</th>
+                    <th class="action-cell">刪除</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <button class="btn-reset" onclick="clearData()" style="color: var(--danger);">清空所有資料</button>
     </div>
-
-    <button class="btn-reset" onclick="location.reload()">重新整理</button>
 </div>
 
 <script>
     const fmt = new Intl.NumberFormat('zh-TW');
+    let db = JSON.parse(localStorage.getItem('paymentRecords')) || [];
+
+    function switchPage(pageId, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        btn.classList.add('active');
+        if(pageId === 'listPage') renderTable();
+    }
 
     function calculate(isManualTax) {
         const raw = parseFloat(document.getElementById('rawAmount').value) || 0;
         const taxInput = document.getElementById('taxAmount');
-        
         let tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(raw * 0.05);
         if(!isManualTax) taxInput.value = tax || "";
-
         const total = raw + tax;
-        
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
         const cleanFee = hasClean ? Math.round(total * (cRate / 100)) : 0;
-
         const subtotal = total - cleanFee;
-
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = parseFloat(document.getElementById('retentionRate').value) || 0;
         const retention = hasRetention ? Math.round(subtotal * (rRate / 100)) : 0;
-
         const net = subtotal - retention;
         
         let html = `
@@ -160,48 +220,133 @@
                 ⑤ 淨額 (③-④)：${fmt.format(subtotal)} - ${fmt.format(retention)} = <strong>${fmt.format(net)}</strong>
             </div>
         `;
-        
         document.getElementById('processFormula').innerHTML = html;
         document.getElementById('netAmount').value = net;
-
         renderDetail();
+    }
+
+    function getMinguoDate(addMonths) {
+        let d = new Date();
+        d.setMonth(d.getMonth() + addMonths);
+        const y = d.getFullYear() - 1911;
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        return `${y}${m}15`;
     }
 
     function renderDetail() {
         const net = parseFloat(document.getElementById('netAmount').value) || 0;
         const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
         const p1Mon = parseInt(document.getElementById('p1Mon').value) || 0;
-        const p2Pct = parseFloat(document.getElementById('p2Pct').value) || 0;
-        const p2Mon = parseInt(document.getElementById('p2Mon').value) || 0;
-
         const pDetail = document.getElementById('paymentDetail');
-        
-        // 如果沒有輸入比例或淨額為0，不顯示排程
-        if(net <= 0 || document.getElementById('p1Pct').value === "") { 
-            pDetail.innerHTML = ""; 
-            return; 
-        }
-
+        if(net <= 0 || document.getElementById('p1Pct').value === "") { pDetail.innerHTML = ""; return; }
         const pay1Amount = Math.round(net * (p1Pct / 100));
         const pay2Amount = net - pay1Amount;
-
-        const d = new Date();
-        function getMinguoDate(addMonths) {
-            let target = new Date(d);
-            target.setMonth(target.getMonth() + addMonths);
-            return `${target.getFullYear() - 1911}/${target.getMonth() + 1}/15`;
-        }
-
-        let html = `<div class="section-title">付款排程 (尾差已修正)</div>`;
-        html += `<div class="formula">第一期 (${p1Pct}%)：${fmt.format(net)} × ${p1Pct}% = <strong>${fmt.format(pay1Amount)}</strong></div>`;
+        let html = `<div class="section-title">付款排程 (預覽)</div>`;
+        html += `<div class="formula">第一期 (${p1Pct}%)：<strong>${fmt.format(pay1Amount)}</strong></div>`;
         html += `<div class="date-line">${getMinguoDate(p1Mon)} &nbsp; $${fmt.format(pay1Amount)}</div>`;
-        
         if (p1Pct < 100) {
-            html += `<div class="formula" style="margin-top:10px;">第二期 (${p2Pct}%)：${fmt.format(net)} - ${fmt.format(pay1Amount)} = <strong>${fmt.format(pay2Amount)}</strong></div>`;
+            const p2Mon = parseInt(document.getElementById('p2Mon').value) || 0;
+            html += `<div class="formula" style="margin-top:10px;">第二期：<strong>${fmt.format(pay2Amount)}</strong></div>`;
             html += `<div class="date-line">${getMinguoDate(p2Mon)} &nbsp; $${fmt.format(pay2Amount)}</div>`;
         }
-
         pDetail.innerHTML = html;
+    }
+
+    function saveData() {
+        const net = parseFloat(document.getElementById('netAmount').value) || 0;
+        const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
+        const company = document.getElementById('companySelect').value;
+        const note = document.getElementById('workNote').value || "工程";
+        const rRate = document.getElementById('retentionRate').value;
+        if (net <= 0 || isNaN(p1Pct)) { alert("請輸入金額與比例"); return; }
+        
+        const pay1Amount = Math.round(net * (p1Pct / 100));
+        const timestamp = Date.now(); // 用作唯一識別 ID
+        
+        db.push({ 
+            id: timestamp + "_1",
+            date: getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0)), 
+            desc: `${note}-保留${rRate}%(2-1)`, 
+            amount: pay1Amount,
+            company: company
+        });
+        
+        if (p1Pct < 100) {
+            const pay2Amount = net - pay1Amount;
+            db.push({ 
+                id: timestamp + "_2",
+                date: getMinguoDate(parseInt(document.getElementById('p2Mon').value || 0)), 
+                desc: `${note}-保留${rRate}%(2-2)`, 
+                amount: pay2Amount,
+                company: company
+            });
+        }
+        localStorage.setItem('paymentRecords', JSON.stringify(db));
+        alert("儲存成功！");
+    }
+
+    function renderTable() {
+        const filter = document.getElementById('filterCompany').value;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+        
+        const filteredData = db.filter(item => filter === "全部" || item.company === filter);
+        
+        filteredData.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><span class="editable" onblur="updateRecord('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
+                <td><span class="editable" onblur="updateRecord('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
+                <td class="amount-cell"><span class="editable" onblur="updateAmount('${item.id}', this)" contenteditable="true">${fmt.format(item.amount)}</span></td>
+                <td class="action-cell"><button class="btn-del" onclick="deleteRecord('${item.id}')">×</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function updateRecord(id, field, newValue) {
+        const idx = db.findIndex(item => item.id === id);
+        if(idx !== -1) {
+            db[idx][field] = newValue;
+            localStorage.setItem('paymentRecords', JSON.stringify(db));
+        }
+    }
+
+    function updateAmount(id, el) {
+        const idx = db.findIndex(item => item.id === id);
+        if(idx !== -1) {
+            // 移除逗號並轉為數字
+            let val = parseInt(el.innerText.replace(/,/g, '')) || 0;
+            db[idx].amount = val;
+            localStorage.setItem('paymentRecords', JSON.stringify(db));
+            el.innerText = fmt.format(val); // 格式化回去
+        }
+    }
+
+    function deleteRecord(id) {
+        if(confirm("確定要刪除此筆項次嗎？")) {
+            db = db.filter(item => item.id !== id);
+            localStorage.setItem('paymentRecords', JSON.stringify(db));
+            renderTable();
+        }
+    }
+
+    function clearData() { if(confirm("確定要清空所有紀錄嗎？")) { db = []; localStorage.removeItem('paymentRecords'); renderTable(); } }
+
+    function exportToExcel() {
+        const filter = document.getElementById('filterCompany').value;
+        const filteredData = db.filter(item => filter === "全部" || item.company === filter);
+        if(filteredData.length === 0) { alert("目前沒有資料可以匯出"); return; }
+        let csvContent = "\uFEFF匯款日期,明細,金額\n";
+        filteredData.forEach(item => {
+            let desc = `"${item.desc.replace(/"/g, '""')}"`;
+            csvContent += `${item.date},${desc},${item.amount}\n`;
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `付款清單_${filter}_${new Date().toLocaleDateString()}.csv`;
+        link.click();
     }
 </script>
 
