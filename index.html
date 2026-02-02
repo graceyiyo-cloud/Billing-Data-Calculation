@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>工程階層結算系統</title>
+    <style>
+        :root {
+            --bg: #F7F6F2;
+            --card: #FFFFFF;
+            --primary: #8E9775;
+            --accent: #AF8F6F;
+            --text: #4A4A4A;
+            --border: #E0DED7;
+        }
+
+        body { background-color: var(--bg); color: var(--text); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .card { background: var(--card); width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
+        h2 { text-align: center; color: var(--primary); font-weight: 500; margin-bottom: 20px; letter-spacing: 1px; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
+        .col { flex: 1; display: flex; flex-direction: column; }
+        
+        label { font-size: 0.8rem; margin-bottom: 5px; color: #999; }
+        input { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FAFAFA; width: 100%; box-sizing: border-box; }
+        input:focus { border-color: var(--primary); background: #FFF; }
+        
+        #netAmount { font-weight: bold; color: var(--accent); background-color: #FFF9F3; border: 1px solid var(--accent); }
+
+        .config-box { background: #F9F9F8; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #EEE; }
+        .payment-box { border-top: 2px solid var(--primary); padding-top: 15px; margin-top: 20px; }
+        
+        .display-area { background: #FCFCFB; border: 1px solid #EEE; padding: 20px; border-radius: 10px; margin-top: 20px; }
+        .section-title { font-size: 0.85rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; border-left: 3px solid var(--primary); padding-left: 8px; }
+        
+        .formula { font-size: 0.9rem; margin-bottom: 12px; line-height: 1.6; color: #666; }
+        .formula strong { color: #333; font-weight: 600; }
+        .subtotal-line { background: #F0F2EB; padding: 4px 8px; border-radius: 4px; color: var(--primary) !important; }
+        
+        .payment-result { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #DDD; }
+        .date-line { font-family: monospace; font-weight: bold; font-size: 1.1rem; color: var(--accent); margin-bottom: 5px; }
+
+        .btn-reset { width: 100%; padding: 10px; margin-top: 20px; color: #BBB; border: 1px solid #EEE; background: none; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>工程結算明細</h2>
+
+    <div class="row">
+        <div class="col">
+            <label>未稅金額</label>
+            <input type="number" id="rawAmount" placeholder="請輸入金額" oninput="calculate(false)">
+        </div>
+        <div class="col">
+            <label>稅額 (5%)</label>
+            <input type="number" id="taxAmount" oninput="calculate(true)">
+        </div>
+    </div>
+
+    <div class="config-box">
+        <div class="row">
+            <div class="col">
+                <label><input type="checkbox" id="cleanCheck" checked onchange="calculate(false)"> 清潔保險 (%)</label>
+                <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate(false)">
+            </div>
+            <div class="col">
+                <label><input type="checkbox" id="retentionCheck" checked onchange="calculate(false)"> 保留款 (%)</label>
+                <input type="number" id="retentionRate" value="10" step="1" oninput="calculate(false)">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <label>最終淨額 (可手動修改)</label>
+            <input type="number" id="netAmount" oninput="renderDetail()">
+        </div>
+    </div>
+
+    <div class="payment-box">
+        <label>付款比例 / 期數 (月)</label>
+        <div class="row">
+            <div class="col"><input type="number" id="p1Pct" value="50" oninput="renderDetail()"></div>
+            <div class="col"><input type="number" id="p1Mon" value="0" oninput="renderDetail()"></div>
+            <div class="col" style="flex:0; padding-bottom:10px;">% / 月</div>
+        </div>
+        <div class="row">
+            <div class="col"><input type="number" id="p2Pct" value="50" oninput="renderDetail()"></div>
+            <div class="col"><input type="number" id="p2Mon" value="1" oninput="renderDetail()"></div>
+            <div class="col" style="flex:0; padding-bottom:10px;">% / 月</div>
+        </div>
+    </div>
+
+    <div class="display-area">
+        <div class="section-title">階層計算列示</div>
+        <div id="processFormula" class="formula">請輸入資料...</div>
+
+        <div class="payment-result" id="paymentDetail"></div>
+    </div>
+
+    <button class="btn-reset" onclick="location.reload()">重新整理</button>
+</div>
+
+<script>
+    const fmt = new Intl.NumberFormat('zh-TW');
+
+    function calculate(isManualTax) {
+        const raw = parseFloat(document.getElementById('rawAmount').value) || 0;
+        const taxInput = document.getElementById('taxAmount');
+        
+        let tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(raw * 0.05);
+        if(!isManualTax) taxInput.value = tax || "";
+
+        const total = raw + tax;
+        
+        // A. 計算清潔費
+        const hasClean = document.getElementById('cleanCheck').checked;
+        const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
+        const cleanFee = hasClean ? Math.round(total * (cRate / 100)) : 0;
+
+        // B. 算出小計 (全額 - 清潔費)
+        const subtotal = total - cleanFee;
+
+        // C. 計算保留款 (基數為小計)
+        const hasRetention = document.getElementById('retentionCheck').checked;
+        const rRate = parseFloat(document.getElementById('retentionRate').value) || 0;
+        const retention = hasRetention ? Math.round(subtotal * (rRate / 100)) : 0;
+
+        // D. 最終淨額
+        const net = subtotal - retention;
+        
+        // 渲染列示文字
+        let html = `
+            <div>① 全額：${fmt.format(raw)} + ${fmt.format(tax)} = <strong>${fmt.format(total)}</strong></div>
+            <div>② 清潔費(${cRate}%)：${fmt.format(total)} × ${cRate}% = <strong>${fmt.format(cleanFee)}</strong></div>
+            <div class="subtotal-line">③ 小計 (①-②)：${fmt.format(total)} - ${fmt.format(cleanFee)} = <strong>${fmt.format(subtotal)}</strong></div>
+            <div>④ 保留款(${rRate}%)：${fmt.format(subtotal)} × ${rRate}% = <strong>${fmt.format(retention)}</strong></div>
+            <div style="margin-top:5px; border-top:1px solid #EEE; padding-top:5px;">
+                ⑤ 淨額 (③-④)：${fmt.format(subtotal)} - ${fmt.format(retention)} = <strong>${fmt.format(net)}</strong>
+            </div>
+        `;
+        
+        document.getElementById('processFormula').innerHTML = html;
+        document.getElementById('netAmount').value = net;
+
+        renderDetail();
+    }
+
+    function renderDetail() {
+        const net = parseFloat(document.getElementById('netAmount').value) || 0;
+        const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
+        const p1Mon = parseInt(document.getElementById('p1Mon').value) || 0;
+        const p2Pct = parseFloat(document.getElementById('p2Pct').value) || 0;
+        const p2Mon = parseInt(document.getElementById('p2Mon').value) || 0;
+
+        const pDetail = document.getElementById('paymentDetail');
+        if(net <= 0) { pDetail.innerHTML = ""; return; }
+
+        const pay1Amount = Math.round(net * (p1Pct / 100));
+        const pay2Amount = net - pay1Amount;
+
+        const d = new Date();
+        function getMinguoDate(addMonths) {
+            let target = new Date(d);
+            target.setMonth(target.getMonth() + addMonths);
+            return `${target.getFullYear() - 1911}/${target.getMonth() + 1}/15`;
+        }
+
+        let html = `<div class="section-title">付款排程 (尾差已修正)</div>`;
+        html += `<div class="formula">第一期 (${p1Pct}%)：${fmt.format(net)} × ${p1Pct}% = <strong>${fmt.format(pay1Amount)}</strong></div>`;
+        html += `<div class="date-line">${getMinguoDate(p1Mon)} &nbsp; $${fmt.format(pay1Amount)}</div>`;
+        
+        html += `<div class="formula" style="margin-top:10px;">第二期 (${p2Pct}%)：${fmt.format(net)} - ${fmt.format(pay1Amount)} = <strong>${fmt.format(pay2Amount)}</strong></div>`;
+        html += `<div class="date-line">${getMinguoDate(p2Mon)} &nbsp; $${fmt.format(pay2Amount)}</div>`;
+
+        pDetail.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
