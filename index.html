@@ -148,7 +148,7 @@
                 <input type="number" id="rawAmount" placeholder="請輸入金額" oninput="calculate(false, false)">
             </div>
             <div class="col">
-                <label>稅額 (5%)</label>
+                <label class="check-label"><input type="checkbox" id="taxCheck" checked onchange="calculate(false, false)"> 稅額 (5%)</label>
                 <input type="number" id="taxAmount" oninput="calculate(true, false)">
             </div>
         </div>
@@ -476,7 +476,7 @@
     }
 
     function deleteVendor(id) {
-        if(confirm("確定刪除此廠商？")) { vendors = vendors.filter(v => v.id != id); localStorage.setItem('vendorList', JSON.stringify(vendors)); renderVendorTable(); }
+        if(confirm("確定刪除此廠商？")) { vendors = vendors.filter(v => v.id != id); localStorage.setItem('paymentRecords', JSON.stringify(db)); renderVendorTable(); }
     }
 
     function clearVendors() {
@@ -495,12 +495,18 @@
     function calculate(isManualTax, isManualRetention) {
         const raw = parseFloat(document.getElementById('rawAmount').value) || 0;
         const taxInput = document.getElementById('taxAmount');
+        const taxChecked = document.getElementById('taxCheck').checked;
         const retentionInput = document.getElementById('retentionAmount');
         const adj = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNote = document.getElementById('adjustmentNote').value || "加扣款";
         
-        let tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(raw * 0.05);
-        if(!isManualTax) taxInput.value = tax || "";
+        let tax = 0;
+        if (taxChecked) {
+            tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(raw * 0.05);
+        }
+        
+        if(!isManualTax) taxInput.value = taxChecked ? (tax || "") : "";
+        
         const total = raw + tax;
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
@@ -525,7 +531,7 @@
     }
 
     function renderFormula(currentNet) {
-        let html = `<div>① 全額：${fmt.format(lastCalcState.raw)} + 稅${fmt.format(lastCalcState.tax)} = <strong>${fmt.format(lastCalcState.total)}</strong></div>`;
+        let html = `<div>① 全額：${fmt.format(lastCalcState.raw)}${lastCalcState.tax > 0 ? ' + 稅' + fmt.format(lastCalcState.tax) : ''} = <strong>${fmt.format(lastCalcState.total)}</strong></div>`;
         if (lastCalcState.cleanFee !== 0) {
             html += `<div>② 清潔費(${lastCalcState.cRate}%)：${fmt.format(lastCalcState.total)} × ${lastCalcState.cRate}% = <strong>${fmt.format(lastCalcState.cleanFee)}</strong></div>`;
         }
