@@ -239,13 +239,14 @@
         <table id="recordTable">
             <thead>
                 <tr>
-                    <th style="width: 8%;">日期</th>
-                    <th style="width: 25%;" class="sortable" onclick="toggleSort('desc')">明細內容 <small>(點擊排序)</small></th>
-                    <th style="width: 10%;">金額</th>
-                    <th style="width: 10%;">解款行</th>
-                    <th style="width: 16%;">帳號</th>
-                    <th style="width: 11%;">戶名</th>
-                    <th style="width: 11%;">付款公司</th>
+                    <th style="width: 35px;">No.</th>
+                    <th style="width: 8.5ch;">日期</th>
+                    <th style="width: auto;" class="sortable" onclick="toggleSort('desc')">明細內容 <small>(點擊排序)</small></th>
+                    <th style="width: 90px;">金額</th>
+                    <th style="width: 8.5ch;">解款行</th>
+                    <th style="width: 17ch;">帳號</th>
+                    <th style="width: 20em;">戶名</th>
+                    <th style="width: 3.2em;">付款公司</th>
                     <th class="action-cell">功能</th>
                 </tr>
             </thead>
@@ -606,10 +607,13 @@
         const filterMon = document.getElementById('filterMonth').value;
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = "";
+        
+        let counter = 1;
         db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon))
           .forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align:center; color:#999;">${counter++}</td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
                 <td class="amount-cell"><span class="editable" onblur="updateAmountField('${item.id}', this)" contenteditable="true">${fmt.format(item.amount)}</span></td>
