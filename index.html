@@ -103,7 +103,6 @@
 
         .vendor-form { background: #F9F9F8; padding: 15px; border-radius: 10px; border: 1px solid #EEE; margin-bottom: 20px; }
 
-        /* 新增樣式：拖曳視覺與統計欄位 */
         .draggable-row { cursor: grab; transition: background 0.2s; }
         .draggable-row:active { cursor: grabbing; }
         .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
@@ -324,7 +323,7 @@
     let db = JSON.parse(localStorage.getItem('paymentRecords')) || [];
     let vendors = JSON.parse(localStorage.getItem('vendorList')) || [];
     let currentSortOrder = 'asc';
-    let checkedIds = new Set(); // 用於暫存被勾選的 ID
+    let checkedIds = new Set();
 
     let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "" };
 
@@ -375,6 +374,22 @@
         document.getElementById('tempAccount').value = acc || "";
         document.getElementById('tempOwner').value = owner || "";
         document.getElementById('searchResults').style.display = 'none';
+
+        // 自動帶入該廠商最近一次的設定
+        const lastRecord = [...db].reverse().find(r => r.owner === owner);
+        if (lastRecord && lastRecord.settings) {
+            const s = lastRecord.settings;
+            document.getElementById('taxCheck').checked = s.taxCheck;
+            document.getElementById('cleanCheck').checked = s.cleanCheck;
+            document.getElementById('cleanRate').value = s.cleanRate;
+            document.getElementById('retentionCheck').checked = s.retentionCheck;
+            document.getElementById('retentionRate').value = s.retentionRate;
+            document.getElementById('p1Pct').value = s.p1Pct;
+            document.getElementById('p1Mon').value = s.p1Mon;
+            document.getElementById('p2Pct').value = s.p2Pct;
+            document.getElementById('p2Mon').value = s.p2Mon;
+            calculate(false, false);
+        }
     }
 
     function exportFullBackup() {
@@ -595,7 +610,29 @@
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         const isInstallment = p1Pct < 100;
-        const recordBase = { company: document.getElementById('companySelect').value, bank: document.getElementById('tempBankCode').value || "", acc: document.getElementById('tempAccount').value || "", owner: document.getElementById('tempOwner').value || "", formula: document.getElementById('processFormula').innerHTML, saveMonth: saveMonthLabel };
+
+        // 儲存當前設定，以便下次自動帶入
+        const settings = {
+            taxCheck: document.getElementById('taxCheck').checked,
+            cleanCheck: document.getElementById('cleanCheck').checked,
+            cleanRate: document.getElementById('cleanRate').value,
+            retentionCheck: document.getElementById('retentionCheck').checked,
+            retentionRate: document.getElementById('retentionRate').value,
+            p1Pct: document.getElementById('p1Pct').value,
+            p1Mon: document.getElementById('p1Mon').value,
+            p2Pct: document.getElementById('p2Pct').value,
+            p2Mon: document.getElementById('p2Mon').value
+        };
+
+        const recordBase = { 
+            company: document.getElementById('companySelect').value, 
+            bank: document.getElementById('tempBankCode').value || "", 
+            acc: document.getElementById('tempAccount').value || "", 
+            owner: document.getElementById('tempOwner').value || "", 
+            formula: document.getElementById('processFormula').innerHTML, 
+            saveMonth: saveMonthLabel,
+            settings: settings 
+        };
         
         const item1 = { ...recordBase, id: timestamp + "_1", date: getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0), false), desc: isInstallment ? `${baseDesc}(2-1)` : baseDesc, amount: pay1 };
         db.push(item1);
@@ -629,7 +666,6 @@
         renderTable();
     }
 
-    // 新增：切換勾選與計算總額
     function toggleItem(id, isChecked) {
         if (isChecked) checkedIds.add(id);
         else checkedIds.delete(id);
@@ -679,7 +715,6 @@
             tr.draggable = true;
             tr.dataset.id = item.id;
             
-            // 綁定拖曳事件
             tr.ondragstart = (e) => { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.id); };
             tr.ondragend = (e) => { e.target.classList.remove('dragging'); removeDragOverStyles(); };
             tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
@@ -706,7 +741,6 @@
         updateSummary();
     }
 
-    // 新增：拖曳邏輯處理
     function removeDragOverStyles() {
         document.querySelectorAll('.draggable-row').forEach(row => row.classList.remove('drag-over'));
     }
@@ -777,7 +811,6 @@
 
     document.addEventListener('click', e => { if (!e.target.closest('.col')) document.getElementById('searchResults').style.display = 'none'; });
     window.onload = () => { 
-        // 初始化時，將現有 db 的 ID 都預設勾選
         db.forEach(i => checkedIds.add(i.id));
         initMonthFilter(); 
     };
