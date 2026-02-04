@@ -6,22 +6,22 @@
     <title>工程階層結算系統</title>
     <style>
         :root {
-            --bg: #F7F6F2;
+            --bg: #F0EFE9;
             --card: #FFFFFF;
-            --primary: #8E9775;
-            --accent: #AF8F6F;
-            --text: #4A4A4A;
-            --border: #E0DED7;
-            --danger: #e74c3c;
-            --success: #217346;
-            --info: #5da9ad;
-            --dark: #2c3e50;
+            --primary: #6D7850;
+            --accent: #8D6E50;
+            --text: #2D2D2D;
+            --border: #C0BEB3;
+            --danger: #c0392b;
+            --success: #1b5e20;
+            --info: #3d868a;
+            --dark: #1a252f;
         }
 
         body { background-color: var(--bg); color: var(--text); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; max-width: 500px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: #E0DED7; cursor: pointer; border-radius: 8px 8px 0 0; color: #777; font-weight: bold; transition: 0.3s; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #D1D0C6; cursor: pointer; border-radius: 8px 8px 0 0; color: #555; font-weight: bold; transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; }
 
         .page { display: none; width: 100%; max-width: 500px; animation: fadeIn 0.3s; }
@@ -29,44 +29,43 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card { background: var(--card); width: 100%; padding: 25px; border-radius: 0 0 15px 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; margin-bottom: 20px; }
-        .list-card { background: var(--card); width: 100%; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
+        .card { background: var(--card); width: 100%; padding: 25px; border-radius: 0 0 15px 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); box-sizing: border-box; margin-bottom: 20px; }
+        .list-card { background: var(--card); width: 100%; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); box-sizing: border-box; }
         
-        h2 { text-align: center; color: var(--primary); font-weight: 500; margin-bottom: 20px; letter-spacing: 1px; }
+        h2 { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 20px; letter-spacing: 1px; }
         .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
         .col { flex: 1; display: flex; flex-direction: column; }
         
-        label { font-size: 0.8rem; margin-bottom: 5px; color: #999; }
-        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FAFAFA; width: 100%; box-sizing: border-box; }
-        input:focus, select:focus { border-color: var(--primary); background: #FFF; }
+        label { font-size: 0.85rem; margin-bottom: 5px; color: #666; font-weight: bold; }
+        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FFFFFF; width: 100%; box-sizing: border-box; color: var(--text); }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(109, 120, 80, 0.2); }
         
-        #netAmount { font-weight: bold; color: var(--accent); background-color: #FFF9F3; border: 1px solid var(--accent); }
-        .config-box { background: #F9F9F8; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #EEE; }
+        #netAmount { font-weight: bold; color: #6b4d32; background-color: #FFF2E6; border: 1px solid var(--accent); }
+        .config-box { background: #F4F4F1; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid var(--border); }
         .payment-box { border-top: 2px solid var(--primary); padding-top: 15px; margin-top: 20px; }
         
         .input-with-unit { position: relative; display: flex; align-items: center; }
-        .unit-label { margin-left: 5px; font-size: 0.8rem; color: #999; white-space: nowrap; width: 20px; }
+        .unit-label { margin-left: 5px; font-size: 0.85rem; color: #444; white-space: nowrap; width: 20px; font-weight: bold; }
 
-        .display-area { background: #FCFCFB; border: 1px solid #EEE; padding: 20px; border-radius: 10px; margin-top: 20px; min-height: 50px; }
-        .section-title { font-size: 0.85rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; border-left: 3px solid var(--primary); padding-left: 8px; }
+        .display-area { background: #FFFFFF; border: 1px solid var(--border); padding: 20px; border-radius: 10px; margin-top: 20px; min-height: 50px; }
+        .section-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; border-left: 4px solid var(--primary); padding-left: 8px; }
         
-        .formula { font-size: 0.9rem; margin-bottom: 12px; line-height: 1.6; color: #666; }
-        .formula strong { color: #333; font-weight: 600; }
-        .subtotal-line { background: #F0F2EB; padding: 4px 8px; border-radius: 4px; color: var(--primary) !important; }
+        .formula { font-size: 0.95rem; margin-bottom: 12px; line-height: 1.6; color: #333; }
+        .formula strong { color: #000; font-weight: 700; }
+        .subtotal-line { background: #E6E9DD; padding: 6px 10px; border-radius: 4px; color: var(--primary) !important; border: 1px solid #C4CCB2; }
         
-        .payment-result { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #DDD; }
-        .date-line { font-family: monospace; font-weight: bold; font-size: 1.1rem; color: var(--accent); margin-bottom: 5px; }
+        .payment-result { margin-top: 15px; padding-top: 10px; border-top: 2px dashed var(--border); }
+        .date-line { font-family: monospace; font-weight: bold; font-size: 1.2rem; color: var(--accent); margin-bottom: 5px; }
 
-        .btn-save { width: 100%; padding: 12px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-save { width: 100%; padding: 14px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
         .btn-excel { padding: 10px 20px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
         .btn-info { padding: 10px 20px; background: var(--info); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
-        .btn-reset { width: 100%; padding: 10px; margin-top: 10px; color: #BBB; border: 1px solid #EEE; background: none; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
+        .btn-reset { width: 100%; padding: 10px; margin-top: 10px; color: #666; border: 1px solid var(--border); background: #E8E7E0; cursor: pointer; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
         
-        .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
-        .check-label input[type="checkbox"] { width: auto; margin: 0; }
+        .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text); font-weight: bold; }
+        .check-label input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
 
-        /* 優化切換按鈕樣式 */
-        .toggle-group { display: flex; background: #ECEBE4; border-radius: 8px; padding: 3px; gap: 2px; }
+        .toggle-group { display: flex; background: #ECEBE4; border-radius: 8px; padding: 3px; gap: 2px; border: 1px solid var(--border); }
         .toggle-btn { 
             flex: 1; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; 
             font-size: 0.75rem; font-weight: bold; color: #888; background: transparent; 
@@ -76,49 +75,31 @@
         #receiptToggle .toggle-btn.active { color: var(--accent); }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; table-layout: fixed; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; overflow: hidden; }
+        th { background-color: #E8E7E0; color: #333; border: 1px solid var(--border); padding: 10px 8px; font-weight: bold; }
+        td { border: 1px solid var(--border); padding: 8px; text-align: left; overflow: hidden; color: var(--text); }
         
         #recordTable td { text-overflow: clip; white-space: nowrap; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-        #recordTable td::-webkit-scrollbar { display: none; }
         
-        #vendorTable td { white-space: normal; word-break: break-all; vertical-align: middle; }
-        
-        th { background-color: #f8f8f8; color: var(--primary); }
         .sortable { cursor: pointer; user-select: none; position: relative; }
-        .sortable:hover { background-color: #f0f0f0; }
+        .sortable:hover { background-color: #D1D0C6; }
         
-        .editable { cursor: pointer; background-color: #fffdec; border-radius: 4px; padding: 2px 5px; display: block; width: calc(100% - 10px); min-height: 1.2em; border: 1px transparent solid; }
-        .editable:focus { border-color: var(--accent); outline: none; background-color: #fff; }
+        .editable { cursor: pointer; background-color: #FFFCE0; border-radius: 4px; padding: 2px 5px; display: block; width: calc(100% - 10px); min-height: 1.2em; border: 1px solid #E0D5A0; }
+        .editable:focus { border-color: var(--accent); outline: none; background-color: #fff; box-shadow: 0 0 5px rgba(141, 110, 80, 0.3); }
         
-        .amount-cell { text-align: right; font-family: monospace; }
+        .amount-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
         
         .action-cell { text-align: center; width: 90px; }
-        .btn-calc { color: var(--info); border: 1px solid var(--info); background: white; cursor: pointer; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; font-weight: bold; padding: 0; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
+        .btn-calc { color: var(--info); border: 1.5px solid var(--info); background: white; cursor: pointer; border-radius: 50%; width: 26px; height: 26px; font-size: 0.75rem; font-weight: bold; padding: 0; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
         .btn-calc:hover { background: var(--info); color: white; }
-        .btn-edit-tool { color: var(--accent); border: 1px solid var(--accent); background: white; cursor: pointer; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
-        .btn-edit-tool:hover { background: var(--accent); color: white; }
-        .btn-del { color: var(--danger); border: none; background: none; cursor: pointer; font-weight: bold; font-size: 1.2rem; line-height: 1; vertical-align: middle; }
+        .btn-edit-tool { color: var(--accent); border: 1.5px solid var(--accent); background: white; cursor: pointer; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
+        .btn-del { color: var(--danger); border: none; background: none; cursor: pointer; font-weight: bold; font-size: 1.4rem; line-height: 1; vertical-align: middle; }
         
-        .filter-row { margin-bottom: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; justify-content: space-between; }
-        .filter-group { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .summary-bar { margin-top: 15px; padding: 15px; background: #E8E7E0; border-radius: 8px; text-align: right; font-size: 1.1rem; color: #000; border: 1px solid var(--border); }
+        .summary-bar strong { color: #d35400; font-size: 1.4rem; text-shadow: 1px 1px 0px #fff; }
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
-        .close-modal { position: absolute; right: 15px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #999; }
-
-        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; z-index: 100; max-height: 250px; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
-        .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; line-height: 1.4; }
-        .search-item:hover { background: #f8f8f8; color: var(--primary); }
-        .search-subtext { color: #888; font-size: 0.75rem; margin-top: 2px; }
-
-        .vendor-form { background: #F9F9F8; padding: 15px; border-radius: 10px; border: 1px solid #EEE; margin-bottom: 20px; }
-
-        .draggable-row { cursor: grab; transition: background 0.2s; }
-        .draggable-row:active { cursor: grabbing; }
-        .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
-        .drag-over { border-top: 3px dashed var(--primary) !important; }
-        .summary-bar { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: right; font-size: 1.1rem; color: var(--dark); border: 1px solid #eee; }
-        .summary-bar strong { color: var(--danger); font-size: 1.3rem; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid var(--primary); border-radius: 8px; z-index: 100; max-height: 250px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: none; }
+        .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #EEE; font-size: 0.9rem; color: #333; }
+        .search-item:hover { background: #F0F2EB; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -181,11 +162,11 @@
         <div class="row">
             <div class="col">
                 <label>未稅金額 (推算)</label>
-                <input type="number" id="rawAmount" readonly tabindex="-1" style="color: #666; background: #f0f0f0;">
+                <input type="number" id="rawAmount" readonly tabindex="-1" style="background: #E8E8E8; font-weight: bold;">
             </div>
             <div class="col">
                 <label>稅額 (5%)</label>
-                <input type="number" id="taxAmount" readonly tabindex="-1" style="color: #666; background: #f0f0f0;">
+                <input type="number" id="taxAmount" readonly tabindex="-1" style="background: #E8E8E8; font-weight: bold;">
             </div>
         </div>
 
@@ -196,11 +177,15 @@
                     <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate()">
                 </div>
                 <div class="col">
-                    <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate()"> 保留款 (%)</label>
-                    <input type="number" id="retentionRate" value="10" step="1" oninput="calculate()">
+                    <label>清潔保險費金額</label>
+                    <input type="number" id="cleanFeeAmount" readonly tabindex="-1" style="background: #E8E8E8;">
                 </div>
             </div>
             <div class="row">
+                <div class="col">
+                    <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate()"> 保留款 (%)</label>
+                    <input type="number" id="retentionRate" value="10" step="1" oninput="calculate()">
+                </div>
                 <div class="col">
                     <label>保留款金額 (可手動修改)</label>
                     <input type="number" id="retentionAmount" oninput="calculate(true)">
@@ -260,10 +245,10 @@
         <div class="section-title">付款清單明細</div>
         <div class="filter-row">
             <div class="filter-group">
-                <label style="margin:0">資料月份：</label>
-                <select id="filterMonth" style="width: auto; padding: 5px;" onchange="renderTable()"></select>
-                <label style="margin:0; margin-left:10px;">篩選公司：</label>
-                <select id="filterCompany" style="width: auto; padding: 5px;" onchange="renderTable()">
+                <label style="margin:0">月份：</label>
+                <select id="filterMonth" style="width: auto; padding: 5px; font-weight: bold;" onchange="renderTable()"></select>
+                <label style="margin:0; margin-left:10px;">公司：</label>
+                <select id="filterCompany" style="width: auto; padding: 5px; font-weight: bold;" onchange="renderTable()">
                     <option value="全部">全部顯示</option>
                     <option value="瀞川">瀞川</option>
                     <option value="聿川">聿川</option>
@@ -273,7 +258,7 @@
             </div>
             <div class="filter-group">
                 <button class="btn-info" onclick="autoFillRecordsByOwner()">按戶名補齊資料</button>
-                <button class="btn-info" style="background: var(--danger); border-color: var(--danger);" onclick="clearData()">清空所有排程</button>
+                <button class="btn-info" style="background: var(--danger);" onclick="clearData()">清空所有排程</button>
                 <button class="btn-info" style="background: var(--dark);" onclick="exportBankExcel()">匯出匯款資料</button>
                 <button class="btn-excel" onclick="exportClaimExcel()">匯出請款明細</button>
             </div>
@@ -284,12 +269,12 @@
                     <th style="width: 30px; text-align: center;"><input type="checkbox" id="selectAll" checked onclick="toggleSelectAll(this)"></th>
                     <th style="width: 35px;">No.</th>
                     <th style="width: 8.5ch;">日期</th>
-                    <th style="width: auto;" class="sortable" onclick="toggleSort('desc')">明細內容 <small>(點擊排序)</small></th>
+                    <th style="width: auto;" class="sortable" onclick="toggleSort('desc')">明細內容</th>
                     <th style="width: 90px;">金額</th>
                     <th style="width: 8.5ch;">解款行</th>
                     <th style="width: 17ch;">帳號</th>
                     <th style="width: 20em;">戶名</th>
-                    <th style="width: 3.2em;">付款公司</th>
+                    <th style="width: 3.2em;">公司</th>
                     <th class="action-cell">功能</th>
                 </tr>
             </thead>
@@ -304,9 +289,8 @@
 <div id="vendorPage" class="page" style="max-width: 850px;">
     <div class="list-card">
         <div class="section-title">廠商匯款資料管理</div>
-        
         <div class="vendor-form">
-            <div class="section-title" style="border-left: 3px solid var(--accent); color: var(--accent);">手動新增廠商</div>
+            <div class="section-title" style="border-left: 4px solid var(--accent); color: var(--accent);">手動新增廠商</div>
             <div class="row">
                 <div class="col"><label>廠商名稱</label><input type="text" id="newVName" placeholder="公司名"></div>
                 <div class="col"><label>解款行</label><input type="text" id="newVBank" placeholder="代號+名稱"></div>
@@ -317,19 +301,17 @@
             </div>
             <button class="btn-save" style="margin-top: 5px; background: var(--accent);" onclick="manualAddVendor()">新增廠商資料</button>
         </div>
-
         <div class="filter-row">
             <div class="filter-group">
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importVendorCSV(this)">
                 <button class="btn-excel" onclick="document.getElementById('csvFileInput').click()">批次匯入 CSV</button>
-                <button class="btn-excel" style="background: #5da9ad;" onclick="exportVendorExcel()">匯出廠商清單</button>
-                <button class="btn-info" style="background: var(--dark); margin-bottom: 15px;" onclick="exportFullBackup()">備份全系統資料 (.json)</button>
+                <button class="btn-excel" style="background: #3d868a;" onclick="exportVendorExcel()">匯出廠商清單</button>
+                <button class="btn-info" style="background: var(--dark);" onclick="exportFullBackup()">備份全系統資料 (.json)</button>
                 <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importFullBackup(this)">
-                <button class="btn-info" style="background: var(--accent); margin-bottom: 15px;" onclick="document.getElementById('backupFileInput').click()">還原系統資料</button>
+                <button class="btn-info" style="background: var(--accent);" onclick="document.getElementById('backupFileInput').click()">還原系統資料</button>
             </div>
-            <button class="btn-reset" onclick="clearVendors()" style="color: var(--danger); margin:0; width: auto;">清空廠商庫</button>
+            <button class="btn-reset" onclick="clearVendors()" style="color: var(--danger); margin:0; width: auto; border-color: var(--danger);">清空廠商庫</button>
         </div>
-        
         <table id="vendorTable">
             <thead>
                 <tr>
@@ -360,7 +342,6 @@
     let currentSortOrder = 'asc';
     let checkedIds = new Set();
     
-    // 全域狀態：憑證與稅額模式
     let currentDocType = '發票';
     let currentTaxMode = '未稅';
 
@@ -373,7 +354,7 @@
         
         const taxGroup = document.getElementById('taxModeToggle');
         if (type === '收據') {
-            taxGroup.style.opacity = '0.3';
+            taxGroup.style.opacity = '0.2';
             taxGroup.style.pointerEvents = 'none';
             setTaxMode('未稅');
         } else {
@@ -422,7 +403,7 @@
             resultsDiv.innerHTML = filtered.map(v => `
                 <div class="search-item" onclick="selectVendor('${v.name}', '${v.bankCode}', '${v.account}', '${v.owner}')">
                     <div><strong>${v.name}</strong> (${v.owner})</div>
-                    <div class="search-subtext">行庫：${v.bankCode || ''} | 帳號：${v.account || ''}</div>
+                    <div style="font-size:0.8rem; color:#666">行庫：${v.bankCode || ''} | 帳號：${v.account || ''}</div>
                 </div>
             `).join('');
             resultsDiv.style.display = 'block';
@@ -443,7 +424,6 @@
             const s = lastRecord.settings;
             if (s.docType) setDocType(s.docType);
             if (s.taxMode) setTaxMode(s.taxMode);
-            
             document.getElementById('cleanCheck').checked = s.cleanCheck;
             document.getElementById('cleanRate').value = s.cleanRate;
             document.getElementById('retentionCheck').checked = s.retentionCheck;
@@ -587,6 +567,7 @@
     function calculate(isManualRetention = false) {
         const inputVal = parseFloat(document.getElementById('inputAmount').value) || 0;
         const retentionInput = document.getElementById('retentionAmount');
+        const cleanFeeInput = document.getElementById('cleanFeeAmount');
         const adj = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNote = document.getElementById('adjustmentNote').value || "加扣款";
         
@@ -613,6 +594,8 @@
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
         const cleanFee = hasClean ? Math.round(total * (cRate / 100)) : 0;
+        cleanFeeInput.value = cleanFee || "";
+
         const subtotal = total - cleanFee;
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = parseFloat(document.getElementById('retentionRate').value) || 0;
@@ -635,42 +618,45 @@
 
     function renderFormula(currentNet) {
         let html = `<div>① 全額：${fmt.format(lastCalcState.raw)}${lastCalcState.tax > 0 ? ' + 稅' + fmt.format(lastCalcState.tax) : ''} = <strong>${fmt.format(lastCalcState.total)}</strong></div>`;
+        let stepCount = 2;
+        
+        // 如果有清潔費，才顯示清潔費與小計
         if (lastCalcState.cleanFee !== 0) {
             html += `<div>② 清潔費(${lastCalcState.cRate}%)：${fmt.format(lastCalcState.total)} × ${lastCalcState.cRate}% = <strong>${fmt.format(lastCalcState.cleanFee)}</strong></div>`;
+            html += `<div class="subtotal-line">③ 小計：${fmt.format(lastCalcState.total)} - ${fmt.format(lastCalcState.cleanFee)} = <strong>${fmt.format(lastCalcState.subtotal)}</strong></div>`;
+            stepCount = 4;
         }
-        html += `<div class="subtotal-line">③ 小計：${fmt.format(lastCalcState.total)} - ${fmt.format(lastCalcState.cleanFee)} = <strong>${fmt.format(lastCalcState.subtotal)}</strong></div>`;
-        let stepCount = 4;
+        
+        // 序號對應工具
+        const getIdx = () => {
+            const map = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤", 6: "⑥" };
+            return map[stepCount++];
+        };
+
         if (lastCalcState.retention !== 0) {
-            html += `<div>④ 保留款：${fmt.format(lastCalcState.subtotal)} × ${lastCalcState.rRate}% = <strong>${fmt.format(lastCalcState.retention)}</strong></div>`;
-            stepCount = 5;
+            html += `<div>${getIdx()} 保留款：${fmt.format(lastCalcState.subtotal)} × ${lastCalcState.rRate}% = <strong>${fmt.format(lastCalcState.retention)}</strong></div>`;
         }
         if (lastCalcState.adj !== 0) {
-            html += `<div>${stepCount === 5 ? '⑤' : '④'} ${lastCalcState.adjNote}：<strong>${lastCalcState.adj >= 0 ? '+' : ''}${fmt.format(lastCalcState.adj)}</strong></div>`;
-            stepCount++;
+            html += `<div>${getIdx()} ${lastCalcState.adjNote}：<strong>${lastCalcState.adj >= 0 ? '+' : ''}${fmt.format(lastCalcState.adj)}</strong></div>`;
         }
-        html += `<div style="margin-top:5px; border-top:1px solid #EEE; padding-top:5px;">${stepCount === 6 ? '⑥' : (stepCount === 5 ? '⑤' : '④')} 淨額：<strong>${fmt.format(currentNet)}</strong></div>`;
+        html += `<div style="margin-top:5px; border-top:1px solid #EEE; padding-top:5px;">${getIdx()} 淨額：<strong>${fmt.format(currentNet)}</strong></div>`;
         document.getElementById('processFormula').innerHTML = html;
     }
 
     function getCalculatedDate(addMonths, useSlash = true) {
         const rawBase = document.getElementById('baseDate').value;
         if (!/^\d{7}$/.test(rawBase)) return "格式錯誤";
-
         let year = parseInt(rawBase.substring(0, 3)) + 1911;
         let month = parseInt(rawBase.substring(3, 5)) - 1;
         let day = parseInt(rawBase.substring(5, 7));
-
         let d = new Date(year, month, day);
-        
         if (addMonths > 0) {
             d.setMonth(d.getMonth() + addMonths);
             d.setDate(15);
         }
-
         const resY = d.getFullYear() - 1911;
         const resM = (d.getMonth() + 1).toString().padStart(2, '0');
         const resD = d.getDate().toString().padStart(2, '0');
-
         return useSlash ? `${resY}/${resM}/${resD}` : `${resY}${resM}${resD}`;
     }
 
@@ -679,10 +665,8 @@
         const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
         const pDetail = document.getElementById('paymentDetail');
         if(net <= 0 || isNaN(p1Pct)) { pDetail.innerHTML = ""; return; }
-        
         const pay1 = Math.round(net * (p1Pct / 100));
         const date1 = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), true);
-        
         let html = `<div class="section-title">付款排程 (預覽)</div><div class="date-line">${date1} &nbsp; $${fmt.format(pay1)}</div>`;
         if (p1Pct < 100) {
             const pay2 = net - pay1;
@@ -703,11 +687,9 @@
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = document.getElementById('retentionRate').value;
         const currentBaseDate = document.getElementById('baseDate').value; 
-        
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         const isInstallment = p1Pct < 100;
-
         const settings = {
             docType: currentDocType,
             taxMode: currentTaxMode,
@@ -721,7 +703,6 @@
             p2Mon: document.getElementById('p2Mon').value,
             baseDate: currentBaseDate 
         };
-
         const recordBase = { 
             company: document.getElementById('companySelect').value, 
             bank: document.getElementById('tempBankCode').value || "", 
@@ -731,12 +712,10 @@
             saveMonth: saveMonthLabel,
             settings: settings 
         };
-        
         const date1_save = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), false);
         const item1 = { ...recordBase, id: timestamp + "_1", date: date1_save, desc: isInstallment ? `${baseDesc}(2-1)` : baseDesc, amount: pay1 };
         db.push(item1);
         checkedIds.add(item1.id);
-
         if (isInstallment) { 
             const date2_save = getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), false);
             const item2 = { ...recordBase, id: timestamp + "_2", date: date2_save, desc: `${baseDesc}(2-2)`, amount: net - pay1 };
@@ -744,21 +723,18 @@
             checkedIds.add(item2.id);
         }
         localStorage.setItem('paymentRecords', JSON.stringify(db));
-        
         clearInputFields(currentBaseDate, currentDocType, currentTaxMode);
     }
 
     function clearInputFields(keptBaseDate, keptDocType, keptTaxMode) {
-        ['vendorSearch', 'workNote', 'inputAmount', 'rawAmount', 'taxAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
+        ['vendorSearch', 'workNote', 'inputAmount', 'rawAmount', 'taxAmount', 'cleanFeeAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.value = "";
         });
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
-        
         if (keptBaseDate) document.getElementById('baseDate').value = keptBaseDate;
         else initBaseDate();
-
         if (keptDocType) setDocType(keptDocType);
         if (keptTaxMode) setTaxMode(keptTaxMode);
     }
@@ -791,15 +767,12 @@
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
         const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
-        
         let filteredSum = 0;
         let checkedSum = 0;
-        
         filtered.forEach(i => {
             filteredSum += i.amount;
             if (checkedIds.has(i.id)) checkedSum += i.amount;
         });
-
         document.getElementById('filteredTotal').innerText = '$' + fmt.format(filteredSum);
         document.getElementById('checkedTotal').innerText = '$' + fmt.format(checkedSum);
     }
@@ -809,10 +782,8 @@
         const filterMon = document.getElementById('filterMonth').value;
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = "";
-        
         let counter = 1;
         const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
-        
         filtered.forEach(item => {
             if (!checkedIds.has(item.id) && document.getElementById('selectAll').checked) {
                 checkedIds.add(item.id);
@@ -821,16 +792,14 @@
             tr.className = "draggable-row";
             tr.draggable = true;
             tr.dataset.id = item.id;
-            
             tr.ondragstart = (e) => { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.id); };
             tr.ondragend = (e) => { e.target.classList.remove('dragging'); removeDragOverStyles(); };
             tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
             tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
             tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
-
             tr.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
-                <td style="text-align:center; color:#999;">${counter++}</td>
+                <td style="text-align:center; color:#555; font-weight:bold;">${counter++}</td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
                 <td class="amount-cell"><span class="editable" onblur="updateAmountField('${item.id}', this)" contenteditable="true">${fmt.format(item.amount)}</span></td>
