@@ -102,13 +102,21 @@
         .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #EEE; font-size: 0.9rem; color: #333; }
         .search-item:hover { background: #F0F2EB; color: var(--primary); }
 
-        /* 修正按鈕擠在一起的樣式 */
         .filter-row { margin-bottom: 25px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: space-between; }
         .filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .filter-group button { margin: 5px 0; }
-        
-        /* 增加縱向分組間隔 */
         .button-cluster { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .close-modal { position: absolute; right: 15px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #999; }
+        
+        .draggable-row { cursor: grab; transition: background 0.2s; }
+        .draggable-row:active { cursor: grabbing; }
+        .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
+        .drag-over { border-top: 3px dashed var(--primary) !important; }
+
+        .vendor-form { background: #F4F4F1; padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -298,7 +306,6 @@
 <div id="vendorPage" class="page" style="max-width: 850px;">
     <div class="list-card">
         <div class="section-title">廠商匯款資料管理</div>
-        
         <div class="vendor-form">
             <div class="section-title" style="border-left: 4px solid var(--accent); color: var(--accent);">手動新增廠商</div>
             <div class="row">
@@ -311,7 +318,6 @@
             </div>
             <button class="btn-save" style="margin-top: 5px; margin-bottom: 25px; background: var(--accent);" onclick="manualAddVendor()">新增廠商資料</button>
         </div>
-
         <div class="filter-row" style="margin-top: 20px;">
             <div class="filter-group">
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importVendorCSV(this)">
@@ -323,7 +329,6 @@
                 <button class="btn-save" style="background: #eee; color: var(--danger); width: auto; padding: 10px 20px; margin: 0; border: 1px solid var(--danger);" onclick="clearVendors()">清空廠商庫</button>
             </div>
         </div>
-        
         <table id="vendorTable">
             <thead>
                 <tr>
@@ -556,7 +561,7 @@
 
     function updateVendorField(id, field, value) {
         const idx = vendors.findIndex(v => v.id == id);
-        if(idx !== -1) { vendors[idx][field] = value.trim(); localStorage.setItem('paymentRecords', JSON.stringify(vendors)); }
+        if(idx !== -1) { vendors[idx][field] = value.trim(); localStorage.setItem('vendorList', JSON.stringify(vendors)); }
     }
 
     function deleteVendor(id) {
@@ -840,7 +845,10 @@
 
     function showFormula(id) {
         const record = db.find(i => i.id === id);
-        if(record) { document.getElementById('modalBody').innerHTML = record.formula; document.getElementById('infoModal').style.display = 'flex'; }
+        if(record) { 
+            document.getElementById('modalBody').innerHTML = record.formula; 
+            document.getElementById('infoModal').style.display = 'flex'; 
+        }
     }
 
     function updateField(id, field, value) {
