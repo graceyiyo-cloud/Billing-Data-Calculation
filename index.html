@@ -111,10 +111,13 @@
         .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .close-modal { position: absolute; right: 15px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #999; }
         
-        .draggable-row { cursor: grab; transition: background 0.2s; }
-        .draggable-row:active { cursor: grabbing; }
+        .draggable-row { transition: background 0.2s; }
         .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
         .drag-over { border-top: 3px dashed var(--primary) !important; }
+
+        /* 序號拖曳把手樣式 */
+        .drag-handle { cursor: grab; background-color: #f8f8f8; transition: background 0.2s; }
+        .drag-handle:active { cursor: grabbing; background-color: #eee; }
 
         .vendor-form { background: #F4F4F1; padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; }
     </style>
@@ -802,16 +805,19 @@
             }
             const tr = document.createElement('tr');
             tr.className = "draggable-row";
-            tr.draggable = true;
+            tr.draggable = false; // 預設關閉，由 No. 欄位觸發
             tr.dataset.id = item.id;
-            tr.ondragstart = (e) => { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.id); };
-            tr.ondragend = (e) => { e.target.classList.remove('dragging'); removeDragOverStyles(); };
+            
+            // 拖曳邏輯：只有滑鼠點擊序號欄位 No. 時才允許拖曳
+            tr.ondragstart = (e) => { e.dataTransfer.setData('text/plain', item.id); e.target.classList.add('dragging'); };
+            tr.ondragend = (e) => { e.target.classList.remove('dragging'); tr.draggable = false; removeDragOverStyles(); };
             tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
             tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
             tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
+
             tr.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
-                <td style="text-align:center; color:#555; font-weight:bold;">${counter++}</td>
+                <td style="text-align:center; color:#555; font-weight:bold;" class="drag-handle" onmousedown="enableDrag(this)" onmouseup="disableDrag(this)">${counter++}</td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
                 <td class="amount-cell"><span class="editable" onblur="updateAmountField('${item.id}', this)" contenteditable="true">${fmt.format(item.amount)}</span></td>
@@ -828,6 +834,10 @@
         });
         updateSummary();
     }
+
+    // 輔助函式：僅限 No. 欄位啟用拖曳
+    function enableDrag(el) { el.parentElement.draggable = true; }
+    function disableDrag(el) { el.parentElement.draggable = false; }
 
     function removeDragOverStyles() {
         document.querySelectorAll('.draggable-row').forEach(row => row.classList.remove('drag-over'));
