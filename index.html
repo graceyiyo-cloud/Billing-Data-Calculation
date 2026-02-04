@@ -393,6 +393,7 @@
             document.getElementById('p1Mon').value = s.p1Mon;
             document.getElementById('p2Pct').value = s.p2Pct;
             document.getElementById('p2Mon').value = s.p2Mon;
+            // 注意：這裡不帶入基準日，基準日遵循「上一筆填寫」的原則
             calculate(false, false);
         }
     }
@@ -582,16 +583,10 @@
         document.getElementById('processFormula').innerHTML = html;
     }
 
-    /**
-     * 計算民國日期
-     * @param {number} addMonths - 期數
-     * @param {boolean} useSlash - 是否使用斜線分隔
-     */
     function getCalculatedDate(addMonths, useSlash = true) {
         const rawBase = document.getElementById('baseDate').value;
         if (!/^\d{7}$/.test(rawBase)) return "格式錯誤";
 
-        // 解析民國年月日
         let year = parseInt(rawBase.substring(0, 3)) + 1911;
         let month = parseInt(rawBase.substring(3, 5)) - 1;
         let day = parseInt(rawBase.substring(5, 7));
@@ -599,11 +594,9 @@
         let d = new Date(year, month, day);
         
         if (addMonths > 0) {
-            // 期數大於 0 時，增加月份並固定在 15 號
             d.setMonth(d.getMonth() + addMonths);
             d.setDate(15);
         }
-        // 若期數為 0，則維持原基準日 (d 不變)
 
         const resY = d.getFullYear() - 1911;
         const resM = (d.getMonth() + 1).toString().padStart(2, '0');
@@ -640,6 +633,8 @@
         const workNote = document.getElementById('workNote').value || "工程";
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = document.getElementById('retentionRate').value;
+        const currentBaseDate = document.getElementById('baseDate').value; // 獲取當前基準日
+        
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         const isInstallment = p1Pct < 100;
@@ -653,7 +648,8 @@
             p1Pct: document.getElementById('p1Pct').value,
             p1Mon: document.getElementById('p1Mon').value,
             p2Pct: document.getElementById('p2Pct').value,
-            p2Mon: document.getElementById('p2Mon').value
+            p2Mon: document.getElementById('p2Mon').value,
+            baseDate: currentBaseDate // 儲存基準日到設定中
         };
 
         const recordBase = { 
@@ -678,17 +674,25 @@
             checkedIds.add(item2.id);
         }
         localStorage.setItem('paymentRecords', JSON.stringify(db));
-        clearInputFields();
+        
+        // 傳遞目前填寫的基準日，以便清空欄位時保留它
+        clearInputFields(currentBaseDate);
     }
 
-    function clearInputFields() {
+    function clearInputFields(keptBaseDate) {
         ['vendorSearch', 'workNote', 'rawAmount', 'taxAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.value = "";
         });
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
-        initBaseDate();
+        
+        // 如果有傳入需要保留的基準日，就填入；否則（如初始化時）才用當天日期
+        if (keptBaseDate) {
+            document.getElementById('baseDate').value = keptBaseDate;
+        } else {
+            initBaseDate();
+        }
     }
 
     function toggleSort(field) {
