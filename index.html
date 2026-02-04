@@ -375,7 +375,6 @@
         document.getElementById('tempOwner').value = owner || "";
         document.getElementById('searchResults').style.display = 'none';
 
-        // 自動帶入該廠商最近一次的設定
         const lastRecord = [...db].reverse().find(r => r.owner === owner);
         if (lastRecord && lastRecord.settings) {
             const s = lastRecord.settings;
@@ -589,10 +588,11 @@
         const pDetail = document.getElementById('paymentDetail');
         if(net <= 0 || isNaN(p1Pct)) { pDetail.innerHTML = ""; return; }
         const pay1 = Math.round(net * (p1Pct / 100));
-        let html = `<div class="section-title">付款排程 (預覽)</div><div class="formula">第一期 (${p1Pct}%)：<strong>${fmt.format(pay1)}</strong></div><div class="date-line">${getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0), true)} &nbsp; $${fmt.format(pay1)}</div>`;
+        
+        let html = `<div class="section-title">付款排程 (預覽)</div><div class="date-line">${getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0), true)} &nbsp; $${fmt.format(pay1)}</div>`;
         if (p1Pct < 100) {
             const pay2 = net - pay1;
-            html += `<div class="formula" style="margin-top:10px;">第二期：<strong>${fmt.format(pay2)}</strong></div><div class="date-line">${getMinguoDate(parseInt(document.getElementById('p2Mon').value || 0), true)} &nbsp; $${fmt.format(pay2)}</div>`;
+            html += `<div class="date-line">${getMinguoDate(parseInt(document.getElementById('p2Mon').value || 0), true)} &nbsp; $${fmt.format(pay2)}</div>`;
         }
         pDetail.innerHTML = html;
     }
@@ -611,7 +611,6 @@
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         const isInstallment = p1Pct < 100;
 
-        // 儲存當前設定，以便下次自動帶入
         const settings = {
             taxCheck: document.getElementById('taxCheck').checked,
             cleanCheck: document.getElementById('cleanCheck').checked,
