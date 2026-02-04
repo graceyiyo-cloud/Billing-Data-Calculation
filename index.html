@@ -198,6 +198,12 @@
         </div>
 
         <div class="payment-box">
+            <div class="row">
+                <div class="col">
+                    <label>付款基準日 (格式: 1150212)</label>
+                    <input type="text" id="baseDate" placeholder="例如: 1150212" oninput="renderDetail()">
+                </div>
+            </div>
             <label>付款比例 / 期數 (月)</label>
             <div class="row">
                 <div class="col"><div class="input-with-unit"><input type="number" id="p1Pct" placeholder="比例" oninput="renderDetail()"><span class="unit-label">%</span></div></div>
@@ -576,10 +582,34 @@
         document.getElementById('processFormula').innerHTML = html;
     }
 
-    function getMinguoDate(addMonths, useSlash = true) {
-        let d = new Date(); d.setMonth(d.getMonth() + (isNaN(addMonths) ? 0 : addMonths));
-        const y = d.getFullYear() - 1911; const m = (d.getMonth() + 1).toString().padStart(2, '0');
-        return useSlash ? `${y}/${m}/15` : `${y}${m}15`;
+    /**
+     * 計算民國日期
+     * @param {number} addMonths - 期數
+     * @param {boolean} useSlash - 是否使用斜線分隔
+     */
+    function getCalculatedDate(addMonths, useSlash = true) {
+        const rawBase = document.getElementById('baseDate').value;
+        if (!/^\d{7}$/.test(rawBase)) return "格式錯誤";
+
+        // 解析民國年月日
+        let year = parseInt(rawBase.substring(0, 3)) + 1911;
+        let month = parseInt(rawBase.substring(3, 5)) - 1;
+        let day = parseInt(rawBase.substring(5, 7));
+
+        let d = new Date(year, month, day);
+        
+        if (addMonths > 0) {
+            // 期數大於 0 時，增加月份並固定在 15 號
+            d.setMonth(d.getMonth() + addMonths);
+            d.setDate(15);
+        }
+        // 若期數為 0，則維持原基準日 (d 不變)
+
+        const resY = d.getFullYear() - 1911;
+        const resM = (d.getMonth() + 1).toString().padStart(2, '0');
+        const resD = d.getDate().toString().padStart(2, '0');
+
+        return useSlash ? `${resY}/${resM}/${resD}` : `${resY}${resM}${resD}`;
     }
 
     function renderDetail() {
@@ -587,12 +617,15 @@
         const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
         const pDetail = document.getElementById('paymentDetail');
         if(net <= 0 || isNaN(p1Pct)) { pDetail.innerHTML = ""; return; }
-        const pay1 = Math.round(net * (p1Pct / 100));
         
-        let html = `<div class="section-title">付款排程 (預覽)</div><div class="date-line">${getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0), true)} &nbsp; $${fmt.format(pay1)}</div>`;
+        const pay1 = Math.round(net * (p1Pct / 100));
+        const date1 = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), true);
+        
+        let html = `<div class="section-title">付款排程 (預覽)</div><div class="date-line">${date1} &nbsp; $${fmt.format(pay1)}</div>`;
         if (p1Pct < 100) {
             const pay2 = net - pay1;
-            html += `<div class="date-line">${getMinguoDate(parseInt(document.getElementById('p2Mon').value || 0), true)} &nbsp; $${fmt.format(pay2)}</div>`;
+            const date2 = getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), true);
+            html += `<div class="date-line">${date2} &nbsp; $${fmt.format(pay2)}</div>`;
         }
         pDetail.innerHTML = html;
     }
@@ -633,12 +666,14 @@
             settings: settings 
         };
         
-        const item1 = { ...recordBase, id: timestamp + "_1", date: getMinguoDate(parseInt(document.getElementById('p1Mon').value || 0), false), desc: isInstallment ? `${baseDesc}(2-1)` : baseDesc, amount: pay1 };
+        const date1_save = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), false);
+        const item1 = { ...recordBase, id: timestamp + "_1", date: date1_save, desc: isInstallment ? `${baseDesc}(2-1)` : baseDesc, amount: pay1 };
         db.push(item1);
         checkedIds.add(item1.id);
 
         if (isInstallment) { 
-            const item2 = { ...recordBase, id: timestamp + "_2", date: getMinguoDate(parseInt(document.getElementById('p2Mon').value || 0), false), desc: `${baseDesc}(2-2)`, amount: net - pay1 };
+            const date2_save = getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), false);
+            const item2 = { ...recordBase, id: timestamp + "_2", date: date2_save, desc: `${baseDesc}(2-2)`, amount: net - pay1 };
             db.push(item2); 
             checkedIds.add(item2.id);
         }
@@ -653,6 +688,7 @@
         });
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
+        initBaseDate();
     }
 
     function toggleSort(field) {
@@ -808,10 +844,19 @@
         document.getElementById('filterMonth').value = currentLabel;
     }
 
+    function initBaseDate() {
+        const now = new Date();
+        const y = now.getFullYear() - 1911;
+        const m = (now.getMonth() + 1).toString().padStart(2, '0');
+        const d = now.getDate().toString().padStart(2, '0');
+        document.getElementById('baseDate').value = `${y}${m}${d}`;
+    }
+
     document.addEventListener('click', e => { if (!e.target.closest('.col')) document.getElementById('searchResults').style.display = 'none'; });
     window.onload = () => { 
         db.forEach(i => checkedIds.add(i.id));
         initMonthFilter(); 
+        initBaseDate();
     };
 </script>
 
