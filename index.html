@@ -40,10 +40,6 @@
         input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: #FAFAFA; width: 100%; box-sizing: border-box; }
         input:focus, select:focus { border-color: var(--primary); background: #FFF; }
         
-        .select-group { display: flex; background: #EEE; padding: 4px; border-radius: 8px; gap: 2px; }
-        .select-item { flex: 1; padding: 8px; text-align: center; cursor: pointer; border-radius: 6px; font-size: 0.9rem; color: #777; transition: 0.2s; background: transparent; border: none; }
-        .select-item.active { background: white; color: var(--primary); font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
         #netAmount { font-weight: bold; color: var(--accent); background-color: #FFF9F3; border: 1px solid var(--accent); }
         .config-box { background: #F9F9F8; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #EEE; }
         .payment-box { border-top: 2px solid var(--primary); padding-top: 15px; margin-top: 20px; }
@@ -69,11 +65,23 @@
         .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
         .check-label input[type="checkbox"] { width: auto; margin: 0; }
 
+        /* 優化切換按鈕樣式 */
+        .toggle-group { display: flex; background: #ECEBE4; border-radius: 8px; padding: 3px; gap: 2px; }
+        .toggle-btn { 
+            flex: 1; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; 
+            font-size: 0.75rem; font-weight: bold; color: #888; background: transparent; 
+            transition: all 0.2s ease; white-space: nowrap;
+        }
+        .toggle-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #receiptToggle .toggle-btn.active { color: var(--accent); }
+
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; table-layout: fixed; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; overflow: hidden; }
         
         #recordTable td { text-overflow: clip; white-space: nowrap; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
         #recordTable td::-webkit-scrollbar { display: none; }
+        
+        #vendorTable td { white-space: normal; word-break: break-all; vertical-align: middle; }
         
         th { background-color: #f8f8f8; color: var(--primary); }
         .sortable { cursor: pointer; user-select: none; position: relative; }
@@ -83,7 +91,12 @@
         .editable:focus { border-color: var(--accent); outline: none; background-color: #fff; }
         
         .amount-cell { text-align: right; font-family: monospace; }
+        
         .action-cell { text-align: center; width: 90px; }
+        .btn-calc { color: var(--info); border: 1px solid var(--info); background: white; cursor: pointer; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; font-weight: bold; padding: 0; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
+        .btn-calc:hover { background: var(--info); color: white; }
+        .btn-edit-tool { color: var(--accent); border: 1px solid var(--accent); background: white; cursor: pointer; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
+        .btn-edit-tool:hover { background: var(--accent); color: white; }
         .btn-del { color: var(--danger); border: none; background: none; cursor: pointer; font-weight: bold; font-size: 1.2rem; line-height: 1; vertical-align: middle; }
         
         .filter-row { margin-bottom: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; justify-content: space-between; }
@@ -96,8 +109,14 @@
         .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; z-index: 100; max-height: 250px; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
         .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; line-height: 1.4; }
         .search-item:hover { background: #f8f8f8; color: var(--primary); }
+        .search-subtext { color: #888; font-size: 0.75rem; margin-top: 2px; }
 
         .vendor-form { background: #F9F9F8; padding: 15px; border-radius: 10px; border: 1px solid #EEE; margin-bottom: 20px; }
+
+        .draggable-row { cursor: grab; transition: background 0.2s; }
+        .draggable-row:active { cursor: grabbing; }
+        .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
+        .drag-over { border-top: 3px dashed var(--primary) !important; }
         .summary-bar { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: right; font-size: 1.1rem; color: var(--dark); border: 1px solid #eee; }
         .summary-bar strong { color: var(--danger); font-size: 1.3rem; }
     </style>
@@ -142,49 +161,49 @@
 
         <div class="row">
             <div class="col">
-                <label>憑證類型</label>
-                <div class="select-group" id="invTypeGroup">
-                    <button class="select-item active" onclick="setSelect('invType', '發票')">發票</button>
-                    <button class="select-item" onclick="setSelect('invType', '收據')">收據</button>
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="margin-bottom:0">輸入金額</label>
+                    <div style="display:flex; gap: 8px;">
+                        <div class="toggle-group" id="receiptToggle">
+                            <button class="toggle-btn active" onclick="setDocType('發票')">發票</button>
+                            <button class="toggle-btn" onclick="setDocType('收據')">收據</button>
+                        </div>
+                        <div class="toggle-group" id="taxModeToggle">
+                            <button class="toggle-btn active" onclick="setTaxMode('未稅')">未稅</button>
+                            <button class="toggle-btn" onclick="setTaxMode('含稅')">含稅</button>
+                        </div>
+                    </div>
                 </div>
-                <input type="hidden" id="invoiceType" value="發票">
-            </div>
-            <div class="col" id="taxModeCol">
-                <label>計算基準</label>
-                <div class="select-group" id="taxModeGroup">
-                    <button class="select-item active" onclick="setSelect('taxMode', '未稅')">未稅額</button>
-                    <button class="select-item" onclick="setSelect('taxMode', '含稅')">含稅額</button>
-                </div>
-                <input type="hidden" id="taxMode" value="未稅">
+                <input type="number" id="inputAmount" placeholder="請輸入金額" oninput="calculate()">
             </div>
         </div>
 
         <div class="row">
             <div class="col">
-                <label id="rawAmountLabel">金額 (未稅)</label>
-                <input type="number" id="rawAmount" placeholder="請輸入金額" oninput="calculate(false, false)">
+                <label>未稅金額 (推算)</label>
+                <input type="number" id="rawAmount" readonly tabindex="-1" style="color: #666; background: #f0f0f0;">
             </div>
-            <div class="col" id="taxInputCol">
+            <div class="col">
                 <label>稅額 (5%)</label>
-                <input type="number" id="taxAmount" oninput="calculate(true, false)">
+                <input type="number" id="taxAmount" readonly tabindex="-1" style="color: #666; background: #f0f0f0;">
             </div>
         </div>
 
         <div class="config-box">
             <div class="row">
                 <div class="col">
-                    <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate(false, false)"> 清潔保險 (%)</label>
-                    <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate(false, false)">
+                    <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate()"> 清潔保險 (%)</label>
+                    <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate()">
                 </div>
                 <div class="col">
-                    <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate(false, false)"> 保留款 (%)</label>
-                    <input type="number" id="retentionRate" value="10" step="1" oninput="calculate(false, false)">
+                    <label class="check-label"><input type="checkbox" id="retentionCheck" checked onchange="calculate()"> 保留款 (%)</label>
+                    <input type="number" id="retentionRate" value="10" step="1" oninput="calculate()">
                 </div>
             </div>
             <div class="row">
                 <div class="col">
                     <label>保留款金額 (可手動修改)</label>
-                    <input type="number" id="retentionAmount" oninput="calculate(true, true)">
+                    <input type="number" id="retentionAmount" oninput="calculate(true)">
                 </div>
             </div>
         </div>
@@ -192,11 +211,11 @@
         <div class="row">
             <div class="col">
                 <label>加扣款事由</label>
-                <input type="text" id="adjustmentNote" placeholder="例如：代購材料扣款" oninput="calculate(false, false)">
+                <input type="text" id="adjustmentNote" placeholder="例如：代購材料扣款" oninput="calculate()">
             </div>
             <div class="col">
                 <label>加扣款金額</label>
-                <input type="number" id="adjustmentAmount" placeholder="0" oninput="calculate(false, false)">
+                <input type="number" id="adjustmentAmount" placeholder="0" oninput="calculate()">
             </div>
         </div>
 
@@ -265,7 +284,7 @@
                     <th style="width: 30px; text-align: center;"><input type="checkbox" id="selectAll" checked onclick="toggleSelectAll(this)"></th>
                     <th style="width: 35px;">No.</th>
                     <th style="width: 8.5ch;">日期</th>
-                    <th style="width: auto;" class="sortable" onclick="toggleSort('desc')">明細內容</th>
+                    <th style="width: auto;" class="sortable" onclick="toggleSort('desc')">明細內容 <small>(點擊排序)</small></th>
                     <th style="width: 90px;">金額</th>
                     <th style="width: 8.5ch;">解款行</th>
                     <th style="width: 17ch;">帳號</th>
@@ -285,6 +304,7 @@
 <div id="vendorPage" class="page" style="max-width: 850px;">
     <div class="list-card">
         <div class="section-title">廠商匯款資料管理</div>
+        
         <div class="vendor-form">
             <div class="section-title" style="border-left: 3px solid var(--accent); color: var(--accent);">手動新增廠商</div>
             <div class="row">
@@ -297,6 +317,19 @@
             </div>
             <button class="btn-save" style="margin-top: 5px; background: var(--accent);" onclick="manualAddVendor()">新增廠商資料</button>
         </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importVendorCSV(this)">
+                <button class="btn-excel" onclick="document.getElementById('csvFileInput').click()">批次匯入 CSV</button>
+                <button class="btn-excel" style="background: #5da9ad;" onclick="exportVendorExcel()">匯出廠商清單</button>
+                <button class="btn-info" style="background: var(--dark); margin-bottom: 15px;" onclick="exportFullBackup()">備份全系統資料 (.json)</button>
+                <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importFullBackup(this)">
+                <button class="btn-info" style="background: var(--accent); margin-bottom: 15px;" onclick="document.getElementById('backupFileInput').click()">還原系統資料</button>
+            </div>
+            <button class="btn-reset" onclick="clearVendors()" style="color: var(--danger); margin:0; width: auto;">清空廠商庫</button>
+        </div>
+        
         <table id="vendorTable">
             <thead>
                 <tr>
@@ -324,32 +357,235 @@
     const fmt = new Intl.NumberFormat('zh-TW');
     let db = JSON.parse(localStorage.getItem('paymentRecords')) || [];
     let vendors = JSON.parse(localStorage.getItem('vendorList')) || [];
-    let lastSelection = JSON.parse(localStorage.getItem('lastSelection')) || { invType: '發票', taxMode: '未稅' };
-    
     let currentSortOrder = 'asc';
     let checkedIds = new Set();
+    
+    // 全域狀態：憑證與稅額模式
+    let currentDocType = '發票';
+    let currentTaxMode = '未稅';
+
     let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "" };
 
-    function setSelect(type, value) {
-        const input = document.getElementById(type === 'invType' ? 'invoiceType' : 'taxMode');
-        input.value = value;
-        const groupIdx = type === 'invType' ? 'invTypeGroup' : 'taxModeGroup';
-        const btns = document.getElementById(groupIdx).getElementsByTagName('button');
-        for (let btn of btns) {
-            btn.classList.toggle('active', btn.innerText === value || (value === '未稅' && btn.innerText === '未稅額') || (value === '含稅' && btn.innerText === '含稅額'));
+    function setDocType(type) {
+        currentDocType = type;
+        const btns = document.querySelectorAll('#receiptToggle .toggle-btn');
+        btns.forEach(b => b.classList.toggle('active', b.innerText === type));
+        
+        const taxGroup = document.getElementById('taxModeToggle');
+        if (type === '收據') {
+            taxGroup.style.opacity = '0.3';
+            taxGroup.style.pointerEvents = 'none';
+            setTaxMode('未稅');
+        } else {
+            taxGroup.style.opacity = '1';
+            taxGroup.style.pointerEvents = 'auto';
         }
-        lastSelection[type] = value;
-        localStorage.setItem('lastSelection', JSON.stringify(lastSelection));
-        calculate(false, false);
+        calculate();
     }
 
-    function calculate(isManualTax, isManualRetention) {
-        const invType = document.getElementById('invoiceType').value;
-        const taxMode = document.getElementById('taxMode').value;
-        const inputAmount = parseFloat(document.getElementById('rawAmount').value) || 0;
-        const taxInput = document.getElementById('taxAmount');
-        const taxModeCol = document.getElementById('taxModeCol');
-        const taxInputCol = document.getElementById('taxInputCol');
+    function setTaxMode(mode) {
+        currentTaxMode = mode;
+        const btns = document.querySelectorAll('#taxModeToggle .toggle-btn');
+        btns.forEach(b => b.classList.toggle('active', b.innerText === mode));
+        calculate();
+    }
+
+    function generateExcelFile(headers, data, filename) {
+        let xml = '<?xml version="1.0" encoding="utf-8"?><?mso-application progid="Excel.Sheet"?>';
+        xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+        xml += '<Worksheet ss:Name="Sheet1"><Table>';
+        xml += '<Row>';
+        headers.forEach(h => xml += `<Cell><Data ss:Type="String">${h}</Data></Cell>`);
+        xml += '</Row>';
+        data.forEach(row => {
+            xml += '<Row>';
+            row.forEach(cell => {
+                const isNumber = !isNaN(cell) && cell !== "" && typeof cell === 'number';
+                const type = isNumber ? 'Number' : 'String';
+                xml += `<Cell><Data ss:Type="${type}">${cell}</Data></Cell>`;
+            });
+            xml += '</Row>';
+        });
+        xml += '</Table></Worksheet></Workbook>';
+        const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename + ".xls";
+        link.click();
+    }
+
+    function searchVendor(val) {
+        const resultsDiv = document.getElementById('searchResults');
+        if (!val) { resultsDiv.style.display = 'none'; return; }
+        const filtered = vendors.filter(v => v.name.includes(val) || v.owner.includes(val) || (v.account && v.account.includes(val)));
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = filtered.map(v => `
+                <div class="search-item" onclick="selectVendor('${v.name}', '${v.bankCode}', '${v.account}', '${v.owner}')">
+                    <div><strong>${v.name}</strong> (${v.owner})</div>
+                    <div class="search-subtext">行庫：${v.bankCode || ''} | 帳號：${v.account || ''}</div>
+                </div>
+            `).join('');
+            resultsDiv.style.display = 'block';
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    }
+
+    function selectVendor(name, bank, acc, owner) {
+        document.getElementById('vendorSearch').value = name;
+        document.getElementById('tempBankCode').value = bank || "";
+        document.getElementById('tempAccount').value = acc || "";
+        document.getElementById('tempOwner').value = owner || "";
+        document.getElementById('searchResults').style.display = 'none';
+
+        const lastRecord = [...db].reverse().find(r => r.owner === owner);
+        if (lastRecord && lastRecord.settings) {
+            const s = lastRecord.settings;
+            if (s.docType) setDocType(s.docType);
+            if (s.taxMode) setTaxMode(s.taxMode);
+            
+            document.getElementById('cleanCheck').checked = s.cleanCheck;
+            document.getElementById('cleanRate').value = s.cleanRate;
+            document.getElementById('retentionCheck').checked = s.retentionCheck;
+            document.getElementById('retentionRate').value = s.retentionRate;
+            document.getElementById('p1Pct').value = s.p1Pct;
+            document.getElementById('p1Mon').value = s.p1Mon;
+            document.getElementById('p2Pct').value = s.p2Pct;
+            document.getElementById('p2Mon').value = s.p2Mon;
+            calculate();
+        }
+    }
+
+    function exportFullBackup() {
+        const backupData = { paymentRecords: db, vendorList: vendors, backupDate: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `工程系統全備份_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+        link.click();
+    }
+
+    function importFullBackup(input) {
+        const file = input.files[0];
+        if (!file) return;
+        if (!confirm("還原系統將會蓋掉目前電腦中的所有資料，確定要繼續嗎？")) { input.value = ""; return; }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.paymentRecords && imported.vendorList) {
+                    db = imported.paymentRecords;
+                    vendors = imported.vendorList;
+                    localStorage.setItem('paymentRecords', JSON.stringify(db));
+                    localStorage.setItem('vendorList', JSON.stringify(vendors));
+                    alert("系統還原成功！");
+                    location.reload();
+                } else { alert("備份檔案格式不正確。"); }
+            } catch (err) { alert("讀取檔案失敗：" + err); }
+        };
+        reader.readAsText(file);
+    }
+
+    function autoFillRecordsByOwner() {
+        let count = 0;
+        db.forEach(item => {
+            if ((!item.bank || !item.acc) && item.owner) {
+                const match = vendors.find(v => v.owner === item.owner.trim());
+                if (match) {
+                    item.bank = match.bankCode;
+                    item.acc = match.account;
+                    count++;
+                }
+            }
+        });
+        if (count > 0) {
+            localStorage.setItem('paymentRecords', JSON.stringify(db));
+            renderTable();
+            alert(`成功補齊 ${count} 筆匯款資料！`);
+        } else { alert("未找到相符戶名的廠商資料。"); }
+    }
+
+    function manualAddVendor() {
+        const name = document.getElementById('newVName').value.trim();
+        const bank = document.getElementById('newVBank').value.trim();
+        const acc = document.getElementById('newVAcc').value.trim();
+        const owner = document.getElementById('newVOwner').value.trim();
+        if(!name || !acc) { alert("廠商名稱與帳號為必填！"); return; }
+        vendors.push({ id: Date.now() + Math.random(), name, bankCode: bank, account: acc, owner });
+        localStorage.setItem('vendorList', JSON.stringify(vendors));
+        renderVendorTable();
+        ['newVName', 'newVBank', 'newVAcc', 'newVOwner'].forEach(id => document.getElementById(id).value = "");
+        alert("廠商新增成功！");
+    }
+
+    function importVendorCSV(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const rows = text.split('\n').filter(r => r.trim() !== "");
+            rows.slice(1).forEach(row => {
+                const cols = row.split(',').map(s => s.trim().replace(/^="|"$/g, '').replace(/^'/, ''));
+                if (cols.length >= 4) {
+                    vendors.push({ id: Date.now() + Math.random(), name: cols[0], bankCode: cols[1], account: cols[2], owner: cols[3] });
+                }
+            });
+            localStorage.setItem('vendorList', JSON.stringify(vendors));
+            renderVendorTable();
+            alert("匯入成功！");
+            input.value = "";
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function exportVendorExcel() {
+        if(vendors.length === 0) return alert("目前無廠商資料可匯出");
+        const headers = ["廠商名稱", "解款行", "帳號", "戶名"];
+        const data = vendors.map(v => [v.name, v.bankCode, v.account, v.owner]);
+        generateExcelFile(headers, data, `廠商資料庫_${new Date().toLocaleDateString().replace(/\//g,'-')}`);
+    }
+
+    function renderVendorTable() {
+        const tbody = document.getElementById('vendorTableBody');
+        tbody.innerHTML = vendors.map(v => `
+            <tr>
+                <td><span class="editable" onblur="updateVendorField('${v.id}', 'name', this.innerText)" contenteditable="true">${v.name}</span></td>
+                <td><span class="editable" onblur="updateVendorField('${v.id}', 'bankCode', this.innerText)" contenteditable="true">${v.bankCode || ''}</span></td>
+                <td><span class="editable" onblur="updateVendorField('${v.id}', 'account', this.innerText)" contenteditable="true">${v.account || ''}</span></td>
+                <td><span class="editable" onblur="updateVendorField('${v.id}', 'owner', this.innerText)" contenteditable="true">${v.owner || ''}</span></td>
+                <td class="action-cell">
+                    <button class="btn-edit-tool" onclick="alert('請直接在黃色欄位內修改')">改</button>
+                    <button class="btn-del" onclick="deleteVendor('${v.id}')">×</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateVendorField(id, field, value) {
+        const idx = vendors.findIndex(v => v.id == id);
+        if(idx !== -1) { vendors[idx][field] = value.trim(); localStorage.setItem('vendorList', JSON.stringify(vendors)); }
+    }
+
+    function deleteVendor(id) {
+        if(confirm("確定刪除此廠商？")) { vendors = vendors.filter(v => v.id != id); localStorage.setItem('vendorList', JSON.stringify(vendors)); renderVendorTable(); }
+    }
+
+    function clearVendors() {
+        if(confirm("確定清空所有廠商資料？")) { vendors = []; localStorage.removeItem('vendorList'); renderVendorTable(); }
+    }
+
+    function switchPage(pageId, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        btn.classList.add('active');
+        if(pageId === 'listPage') { initMonthFilter(); renderTable(); }
+        if(pageId === 'vendorPage') { renderVendorTable(); }
+    }
+
+    function calculate(isManualRetention = false) {
+        const inputVal = parseFloat(document.getElementById('inputAmount').value) || 0;
         const retentionInput = document.getElementById('retentionAmount');
         const adj = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNote = document.getElementById('adjustmentNote').value || "加扣款";
@@ -357,28 +593,21 @@
         let raw = 0;
         let tax = 0;
 
-        if (invType === '收據') {
-            taxModeCol.style.visibility = 'hidden';
-            taxInputCol.style.visibility = 'hidden';
-            taxInput.value = "";
-            raw = inputAmount;
-            tax = 0;
-            document.getElementById('rawAmountLabel').innerText = "金額 (收據)";
-        } else {
-            taxModeCol.style.visibility = 'visible';
-            taxInputCol.style.visibility = 'visible';
-            document.getElementById('rawAmountLabel').innerText = taxMode === '含稅' ? "金額 (含稅)" : "金額 (未稅)";
-
-            if (taxMode === '含稅') {
-                tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(inputAmount - (inputAmount / 1.05));
-                raw = inputAmount - tax;
-                if (!isManualTax) taxInput.value = tax || "";
+        if (currentDocType === '發票') {
+            if (currentTaxMode === '未稅') {
+                raw = inputVal;
+                tax = Math.round(raw * 0.05);
             } else {
-                raw = inputAmount;
-                tax = isManualTax ? (parseFloat(taxInput.value) || 0) : Math.round(raw * 0.05);
-                if (!isManualTax) taxInput.value = tax || "";
+                raw = Math.round(inputVal / 1.05);
+                tax = inputVal - raw;
             }
+        } else {
+            raw = inputVal;
+            tax = 0;
         }
+
+        document.getElementById('rawAmount').value = raw;
+        document.getElementById('taxAmount').value = tax;
         
         const total = raw + tax;
         const hasClean = document.getElementById('cleanCheck').checked;
@@ -388,12 +617,19 @@
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = parseFloat(document.getElementById('retentionRate').value) || 0;
         let retention = hasRetention ? (isManualRetention ? (parseFloat(retentionInput.value) || 0) : Math.round(subtotal * (rRate / 100))) : 0;
+        
         if(!isManualRetention) retentionInput.value = retention || "";
         
         const net = (subtotal - retention) + adj;
         lastCalcState = { raw, tax, total, cRate, cleanFee, subtotal, rRate, retention, adj, adjNote };
         document.getElementById('netAmount').value = net;
         renderFormula(net);
+        renderDetail();
+    }
+
+    function updateFormulaOnly() {
+        const manualNet = parseFloat(document.getElementById('netAmount').value) || 0;
+        renderFormula(manualNet);
         renderDetail();
     }
 
@@ -416,68 +652,25 @@
         document.getElementById('processFormula').innerHTML = html;
     }
 
-    function saveData() {
-        const net = parseFloat(document.getElementById('netAmount').value) || 0;
-        if (net <= 0 || !document.getElementById('p1Pct').value) { alert("請輸入金額與比例"); return; }
-        const timestamp = Date.now();
-        const saveMonthLabel = `${new Date().getFullYear()}.${(new Date().getMonth()+1).toString().padStart(2, '0')}`;
-        const p1Pct = parseFloat(document.getElementById('p1Pct').value);
-        const pay1 = Math.round(net * (p1Pct / 100));
-        const workNote = document.getElementById('workNote').value || "工程";
-        const currentBaseDate = document.getElementById('baseDate').value;
-
-        const recordBase = { 
-            company: document.getElementById('companySelect').value, 
-            bank: document.getElementById('tempBankCode').value || "", 
-            acc: document.getElementById('tempAccount').value || "", 
-            owner: document.getElementById('tempOwner').value || "", 
-            formula: document.getElementById('processFormula').innerHTML, 
-            saveMonth: saveMonthLabel,
-            settings: { p1Pct: document.getElementById('p1Pct').value, p1Mon: document.getElementById('p1Mon').value, p2Pct: document.getElementById('p2Pct').value, p2Mon: document.getElementById('p2Mon').value, baseDate: currentBaseDate } 
-        };
-        
-        db.push({ ...recordBase, id: timestamp + "_1", date: getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), false), desc: p1Pct < 100 ? `${workNote}(2-1)` : workNote, amount: pay1 });
-        if (p1Pct < 100) { 
-            db.push({ ...recordBase, id: timestamp + "_2", date: getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), false), desc: `${workNote}(2-2)`, amount: net - pay1 }); 
-        }
-        localStorage.setItem('paymentRecords', JSON.stringify(db));
-        alert("儲存成功");
-        clearInputFields(currentBaseDate);
-    }
-
-    function searchVendor(val) {
-        const resultsDiv = document.getElementById('searchResults');
-        if (!val) { resultsDiv.style.display = 'none'; return; }
-        const filtered = vendors.filter(v => v.name.includes(val) || v.owner.includes(val));
-        if (filtered.length > 0) {
-            resultsDiv.innerHTML = filtered.map(v => `
-                <div class="search-item" onclick="selectVendor('${v.name}', '${v.bankCode}', '${v.account}', '${v.owner}')">
-                    <div><strong>${v.name}</strong> (${v.owner})</div>
-                </div>
-            `).join('');
-            resultsDiv.style.display = 'block';
-        } else { resultsDiv.style.display = 'none'; }
-    }
-
-    function selectVendor(name, bank, acc, owner) {
-        document.getElementById('vendorSearch').value = name;
-        document.getElementById('tempBankCode').value = bank || "";
-        document.getElementById('tempAccount').value = acc || "";
-        document.getElementById('tempOwner').value = owner || "";
-        document.getElementById('searchResults').style.display = 'none';
-    }
-
     function getCalculatedDate(addMonths, useSlash = true) {
         const rawBase = document.getElementById('baseDate').value;
         if (!/^\d{7}$/.test(rawBase)) return "格式錯誤";
+
         let year = parseInt(rawBase.substring(0, 3)) + 1911;
         let month = parseInt(rawBase.substring(3, 5)) - 1;
         let day = parseInt(rawBase.substring(5, 7));
+
         let d = new Date(year, month, day);
-        if (addMonths > 0) { d.setMonth(d.getMonth() + addMonths); d.setDate(15); }
+        
+        if (addMonths > 0) {
+            d.setMonth(d.getMonth() + addMonths);
+            d.setDate(15);
+        }
+
         const resY = d.getFullYear() - 1911;
         const resM = (d.getMonth() + 1).toString().padStart(2, '0');
         const resD = d.getDate().toString().padStart(2, '0');
+
         return useSlash ? `${resY}/${resM}/${resD}` : `${resY}${resM}${resD}`;
     }
 
@@ -486,32 +679,230 @@
         const p1Pct = parseFloat(document.getElementById('p1Pct').value) || 0;
         const pDetail = document.getElementById('paymentDetail');
         if(net <= 0 || isNaN(p1Pct)) { pDetail.innerHTML = ""; return; }
+        
         const pay1 = Math.round(net * (p1Pct / 100));
         const date1 = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), true);
+        
         let html = `<div class="section-title">付款排程 (預覽)</div><div class="date-line">${date1} &nbsp; $${fmt.format(pay1)}</div>`;
         if (p1Pct < 100) {
-            html += `<div class="date-line">${getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), true)} &nbsp; $${fmt.format(net - pay1)}</div>`;
+            const pay2 = net - pay1;
+            const date2 = getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), true);
+            html += `<div class="date-line">${date2} &nbsp; $${fmt.format(pay2)}</div>`;
         }
         pDetail.innerHTML = html;
     }
 
-    function clearInputFields(keptBaseDate) {
-        ['vendorSearch', 'workNote', 'rawAmount', 'taxAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount'].forEach(id => {
-            const el = document.getElementById(id); if(el) el.value = "";
-        });
-        document.getElementById('baseDate').value = keptBaseDate;
-        document.getElementById('processFormula').innerHTML = "請輸入資料...";
-        document.getElementById('paymentDetail').innerHTML = "";
+    function saveData() {
+        const net = parseFloat(document.getElementById('netAmount').value) || 0;
+        if (net <= 0 || !document.getElementById('p1Pct').value) { alert("請輸入金額與比例"); return; }
+        const timestamp = Date.now();
+        const saveMonthLabel = `${new Date().getFullYear()}.${(new Date().getMonth()+1).toString().padStart(2, '0')}`;
+        const p1Pct = parseFloat(document.getElementById('p1Pct').value);
+        const pay1 = Math.round(net * (p1Pct / 100));
+        const workNote = document.getElementById('workNote').value || "工程";
+        const hasRetention = document.getElementById('retentionCheck').checked;
+        const rRate = document.getElementById('retentionRate').value;
+        const currentBaseDate = document.getElementById('baseDate').value; 
+        
+        let baseDesc = workNote;
+        if (hasRetention) baseDesc += `-保留${rRate}%`;
+        const isInstallment = p1Pct < 100;
+
+        const settings = {
+            docType: currentDocType,
+            taxMode: currentTaxMode,
+            cleanCheck: document.getElementById('cleanCheck').checked,
+            cleanRate: document.getElementById('cleanRate').value,
+            retentionCheck: document.getElementById('retentionCheck').checked,
+            retentionRate: document.getElementById('retentionRate').value,
+            p1Pct: document.getElementById('p1Pct').value,
+            p1Mon: document.getElementById('p1Mon').value,
+            p2Pct: document.getElementById('p2Pct').value,
+            p2Mon: document.getElementById('p2Mon').value,
+            baseDate: currentBaseDate 
+        };
+
+        const recordBase = { 
+            company: document.getElementById('companySelect').value, 
+            bank: document.getElementById('tempBankCode').value || "", 
+            acc: document.getElementById('tempAccount').value || "", 
+            owner: document.getElementById('tempOwner').value || "", 
+            formula: document.getElementById('processFormula').innerHTML, 
+            saveMonth: saveMonthLabel,
+            settings: settings 
+        };
+        
+        const date1_save = getCalculatedDate(parseInt(document.getElementById('p1Mon').value || 0), false);
+        const item1 = { ...recordBase, id: timestamp + "_1", date: date1_save, desc: isInstallment ? `${baseDesc}(2-1)` : baseDesc, amount: pay1 };
+        db.push(item1);
+        checkedIds.add(item1.id);
+
+        if (isInstallment) { 
+            const date2_save = getCalculatedDate(parseInt(document.getElementById('p2Mon').value || 0), false);
+            const item2 = { ...recordBase, id: timestamp + "_2", date: date2_save, desc: `${baseDesc}(2-2)`, amount: net - pay1 };
+            db.push(item2); 
+            checkedIds.add(item2.id);
+        }
+        localStorage.setItem('paymentRecords', JSON.stringify(db));
+        
+        clearInputFields(currentBaseDate, currentDocType, currentTaxMode);
     }
 
-    function updateFormulaOnly() { renderFormula(parseFloat(document.getElementById('netAmount').value) || 0); renderDetail(); }
+    function clearInputFields(keptBaseDate, keptDocType, keptTaxMode) {
+        ['vendorSearch', 'workNote', 'inputAmount', 'rawAmount', 'taxAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = "";
+        });
+        document.getElementById('processFormula').innerHTML = "請輸入資料...";
+        document.getElementById('paymentDetail').innerHTML = "";
+        
+        if (keptBaseDate) document.getElementById('baseDate').value = keptBaseDate;
+        else initBaseDate();
 
-    function switchPage(pageId, btn) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        btn.classList.add('active');
-        if(pageId === 'listPage') { initMonthFilter(); renderTable(); }
+        if (keptDocType) setDocType(keptDocType);
+        if (keptTaxMode) setTaxMode(keptTaxMode);
+    }
+
+    function toggleSort(field) {
+        currentSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
+        db.sort((a, b) => {
+            let valA = a[field] || "";
+            let valB = b[field] || "";
+            return currentSortOrder === 'asc' ? valA.localeCompare(valB, 'zh-TW') : valB.localeCompare(valA, 'zh-TW');
+        });
+        renderTable();
+    }
+
+    function toggleItem(id, isChecked) {
+        if (isChecked) checkedIds.add(id);
+        else checkedIds.delete(id);
+        updateSummary();
+    }
+
+    function toggleSelectAll(el) {
+        const checkboxes = document.querySelectorAll('.item-check');
+        checkboxes.forEach(cb => {
+            cb.checked = el.checked;
+            toggleItem(cb.dataset.id, el.checked);
+        });
+    }
+
+    function updateSummary() {
+        const filterComp = document.getElementById('filterCompany').value;
+        const filterMon = document.getElementById('filterMonth').value;
+        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
+        
+        let filteredSum = 0;
+        let checkedSum = 0;
+        
+        filtered.forEach(i => {
+            filteredSum += i.amount;
+            if (checkedIds.has(i.id)) checkedSum += i.amount;
+        });
+
+        document.getElementById('filteredTotal').innerText = '$' + fmt.format(filteredSum);
+        document.getElementById('checkedTotal').innerText = '$' + fmt.format(checkedSum);
+    }
+
+    function renderTable() {
+        const filterComp = document.getElementById('filterCompany').value;
+        const filterMon = document.getElementById('filterMonth').value;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+        
+        let counter = 1;
+        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
+        
+        filtered.forEach(item => {
+            if (!checkedIds.has(item.id) && document.getElementById('selectAll').checked) {
+                checkedIds.add(item.id);
+            }
+            const tr = document.createElement('tr');
+            tr.className = "draggable-row";
+            tr.draggable = true;
+            tr.dataset.id = item.id;
+            
+            tr.ondragstart = (e) => { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.id); };
+            tr.ondragend = (e) => { e.target.classList.remove('dragging'); removeDragOverStyles(); };
+            tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
+            tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
+            tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
+
+            tr.innerHTML = `
+                <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
+                <td style="text-align:center; color:#999;">${counter++}</td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
+                <td class="amount-cell"><span class="editable" onblur="updateAmountField('${item.id}', this)" contenteditable="true">${fmt.format(item.amount)}</span></td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'bank', this.innerText)" contenteditable="true">${item.bank || ''}</span></td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'acc', this.innerText)" contenteditable="true">${item.acc || ''}</span></td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'owner', this.innerText)" contenteditable="true">${item.owner || ''}</span></td>
+                <td><span class="editable" onblur="updateField('${item.id}', 'company', this.innerText)" contenteditable="true">${item.company || ''}</span></td>
+                <td class="action-cell">
+                    <button class="btn-calc" onclick="showFormula('${item.id}')" title="查看計算過程">算</button>
+                    <button class="btn-del" onclick="deleteRecord('${item.id}')">×</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        updateSummary();
+    }
+
+    function removeDragOverStyles() {
+        document.querySelectorAll('.draggable-row').forEach(row => row.classList.remove('drag-over'));
+    }
+
+    function handleDrop(draggedId, targetId) {
+        if (draggedId === targetId) return;
+        const dragIdx = db.findIndex(i => i.id === draggedId);
+        const targetIdx = db.findIndex(i => i.id === targetId);
+        const [draggedItem] = db.splice(dragIdx, 1);
+        db.splice(targetIdx, 0, draggedItem);
+        localStorage.setItem('paymentRecords', JSON.stringify(db));
+        renderTable();
+    }
+
+    function showFormula(id) {
+        const record = db.find(i => i.id === id);
+        if(record) { document.getElementById('modalBody').innerHTML = record.formula; document.getElementById('infoModal').style.display = 'flex'; }
+    }
+
+    function updateField(id, field, value) {
+        const idx = db.findIndex(i => i.id === id);
+        if(idx !== -1) { db[idx][field] = value.trim(); localStorage.setItem('paymentRecords', JSON.stringify(db)); }
+    }
+
+    function updateAmountField(id, el) {
+        const idx = db.findIndex(i => i.id === id);
+        if(idx !== -1) {
+            let val = parseInt(el.innerText.replace(/,/g, '')) || 0;
+            db[idx].amount = val; localStorage.setItem('paymentRecords', JSON.stringify(db));
+            el.innerText = fmt.format(val);
+            updateSummary();
+        }
+    }
+
+    function deleteRecord(id) { if(confirm("確定刪除？")) { db = db.filter(i => i.id !== id); checkedIds.delete(id); localStorage.setItem('paymentRecords', JSON.stringify(db)); renderTable(); } }
+    function clearData() { if(confirm("【警告】確定要清空所有的付款排程資料嗎？此操作不可還原。")) { db = []; checkedIds.clear(); localStorage.removeItem('paymentRecords'); renderTable(); } }
+
+    function exportBankExcel() {
+        const filterComp = document.getElementById('filterCompany').value;
+        const filterMon = document.getElementById('filterMonth').value;
+        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon) && checkedIds.has(item.id));
+        if(filtered.length === 0) return alert("目前無「勾選」資料可匯出");
+        const headers = ["日期", "解款行", "帳號", "戶名", "金額"];
+        const data = filtered.map(i => [i.date, i.bank, i.acc, i.owner, i.amount]);
+        generateExcelFile(headers, data, `匯款資料_${filterMon}_${filterComp}`);
+    }
+
+    function exportClaimExcel() {
+        const filterComp = document.getElementById('filterCompany').value;
+        const filterMon = document.getElementById('filterMonth').value;
+        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon) && checkedIds.has(item.id));
+        if(filtered.length === 0) return alert("目前無「勾選」資料可匯出");
+        const headers = ["日期", "明細內容", "金額"];
+        const data = filtered.map(i => [i.date, i.desc, i.amount]);
+        generateExcelFile(headers, data, `請款明細_${filterMon}_${filterComp}`);
     }
 
     function initMonthFilter() {
@@ -520,53 +911,25 @@
         const now = new Date();
         const currentLabel = `${now.getFullYear()}.${(now.getMonth()+1).toString().padStart(2, '0')}`;
         months.add(currentLabel);
-        document.getElementById('filterMonth').innerHTML = `<option value="全部">全部月份</option>` + Array.from(months).sort().reverse().map(m => `<option value="${m}">${m}</option>`).join('');
+        const sorted = Array.from(months).sort().reverse();
+        document.getElementById('filterMonth').innerHTML = `<option value="全部">全部月份</option>` + sorted.map(m => `<option value="${m}">${m}</option>`).join('');
         document.getElementById('filterMonth').value = currentLabel;
     }
 
     function initBaseDate() {
         const now = new Date();
-        document.getElementById('baseDate').value = `${now.getFullYear() - 1911}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+        const y = now.getFullYear() - 1911;
+        const m = (now.getMonth() + 1).toString().padStart(2, '0');
+        const d = now.getDate().toString().padStart(2, '0');
+        document.getElementById('baseDate').value = `${y}${m}${d}`;
     }
 
-    function renderTable() {
-        const filterComp = document.getElementById('filterCompany').value;
-        const filterMon = document.getElementById('filterMonth').value;
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = "";
-        let counter = 1;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
-        filtered.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" checked></td>
-                <td style="text-align:center; color:#999;">${counter++}</td>
-                <td>${item.date}</td>
-                <td>${item.desc}</td>
-                <td class="amount-cell">${fmt.format(item.amount)}</td>
-                <td>${item.bank || ''}</td>
-                <td>${item.acc || ''}</td>
-                <td>${item.owner || ''}</td>
-                <td>${item.company || ''}</td>
-                <td class="action-cell"><button class="btn-del" onclick="deleteRecord('${item.id}')">×</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-        updateSummary();
-    }
-
-    function updateSummary() {
-        const filterComp = document.getElementById('filterCompany').value;
-        const filterMon = document.getElementById('filterMonth').value;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
-        let sum = 0; filtered.forEach(i => sum += i.amount);
-        document.getElementById('filteredTotal').innerText = '$' + fmt.format(sum);
-        document.getElementById('checkedTotal').innerText = '$' + fmt.format(sum);
-    }
-
-    function deleteRecord(id) { if(confirm("確定刪除？")) { db = db.filter(i => i.id !== id); localStorage.setItem('paymentRecords', JSON.stringify(db)); renderTable(); } }
-
-    window.onload = () => { setSelect('invType', lastSelection.invType); setSelect('taxMode', lastSelection.taxMode); initMonthFilter(); initBaseDate(); };
+    document.addEventListener('click', e => { if (!e.target.closest('.col')) document.getElementById('searchResults').style.display = 'none'; });
+    window.onload = () => { 
+        db.forEach(i => checkedIds.add(i.id));
+        initMonthFilter(); 
+        initBaseDate();
+    };
 </script>
 
 </body>
