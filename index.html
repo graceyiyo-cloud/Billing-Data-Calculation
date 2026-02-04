@@ -58,8 +58,8 @@
         .date-line { font-family: monospace; font-weight: bold; font-size: 1.2rem; color: var(--accent); margin-bottom: 5px; }
 
         .btn-save { width: 100%; padding: 14px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        .btn-excel { padding: 10px 20px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
-        .btn-info { padding: 10px 20px; background: var(--info); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
+        .btn-excel { padding: 10px 20px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-info { padding: 10px 20px; background: var(--info); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .btn-reset { width: 100%; padding: 10px; margin-top: 10px; color: #666; border: 1px solid var(--border); background: #E8E7E0; cursor: pointer; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
         
         .check-label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text); font-weight: bold; }
@@ -100,6 +100,11 @@
         .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid var(--primary); border-radius: 8px; z-index: 100; max-height: 250px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: none; }
         .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #EEE; font-size: 0.9rem; color: #333; }
         .search-item:hover { background: #F0F2EB; color: var(--primary); }
+
+        /* 修正按鈕擠在一起的樣式 */
+        .filter-row { margin-bottom: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; justify-content: space-between; }
+        .filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .filter-group button { margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -258,7 +263,7 @@
             </div>
             <div class="filter-group">
                 <button class="btn-info" onclick="autoFillRecordsByOwner()">按戶名補齊資料</button>
-                <button class="btn-info" style="background: var(--danger);" onclick="clearData()">清空所有排程</button>
+                <button class="btn-save" style="background: var(--danger); width: auto; padding: 10px 20px; margin: 0;" onclick="clearData()">清空所有排程</button>
                 <button class="btn-info" style="background: var(--dark);" onclick="exportBankExcel()">匯出匯款資料</button>
                 <button class="btn-excel" onclick="exportClaimExcel()">匯出請款明細</button>
             </div>
@@ -289,6 +294,7 @@
 <div id="vendorPage" class="page" style="max-width: 850px;">
     <div class="list-card">
         <div class="section-title">廠商匯款資料管理</div>
+        
         <div class="vendor-form">
             <div class="section-title" style="border-left: 4px solid var(--accent); color: var(--accent);">手動新增廠商</div>
             <div class="row">
@@ -301,17 +307,19 @@
             </div>
             <button class="btn-save" style="margin-top: 5px; background: var(--accent);" onclick="manualAddVendor()">新增廠商資料</button>
         </div>
+
         <div class="filter-row">
             <div class="filter-group">
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importVendorCSV(this)">
                 <button class="btn-excel" onclick="document.getElementById('csvFileInput').click()">批次匯入 CSV</button>
-                <button class="btn-excel" style="background: #3d868a;" onclick="exportVendorExcel()">匯出廠商清單</button>
+                <button class="btn-info" style="background: var(--info);" onclick="exportVendorExcel()">匯出廠商清單</button>
                 <button class="btn-info" style="background: var(--dark);" onclick="exportFullBackup()">備份全系統資料 (.json)</button>
                 <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importFullBackup(this)">
-                <button class="btn-info" style="background: var(--accent);" onclick="document.getElementById('backupFileInput').click()">還原系統資料</button>
+                <button class="btn-save" style="background: var(--accent); width: auto; padding: 10px 20px; margin: 0;" onclick="document.getElementById('backupFileInput').click()">還原系統資料</button>
+                <button class="btn-save" style="background: #eee; color: var(--danger); width: auto; padding: 10px 20px; margin: 0; border: 1px solid var(--danger);" onclick="clearVendors()">清空廠商庫</button>
             </div>
-            <button class="btn-reset" onclick="clearVendors()" style="color: var(--danger); margin:0; width: auto; border-color: var(--danger);">清空廠商庫</button>
         </div>
+        
         <table id="vendorTable">
             <thead>
                 <tr>
@@ -544,7 +552,7 @@
 
     function updateVendorField(id, field, value) {
         const idx = vendors.findIndex(v => v.id == id);
-        if(idx !== -1) { vendors[idx][field] = value.trim(); localStorage.setItem('vendorList', JSON.stringify(vendors)); }
+        if(idx !== -1) { vendors[idx][field] = value.trim(); localStorage.setItem('paymentRecords', JSON.stringify(vendors)); }
     }
 
     function deleteVendor(id) {
@@ -619,20 +627,15 @@
     function renderFormula(currentNet) {
         let html = `<div>① 全額：${fmt.format(lastCalcState.raw)}${lastCalcState.tax > 0 ? ' + 稅' + fmt.format(lastCalcState.tax) : ''} = <strong>${fmt.format(lastCalcState.total)}</strong></div>`;
         let stepCount = 2;
-        
-        // 如果有清潔費，才顯示清潔費與小計
         if (lastCalcState.cleanFee !== 0) {
             html += `<div>② 清潔費(${lastCalcState.cRate}%)：${fmt.format(lastCalcState.total)} × ${lastCalcState.cRate}% = <strong>${fmt.format(lastCalcState.cleanFee)}</strong></div>`;
             html += `<div class="subtotal-line">③ 小計：${fmt.format(lastCalcState.total)} - ${fmt.format(lastCalcState.cleanFee)} = <strong>${fmt.format(lastCalcState.subtotal)}</strong></div>`;
             stepCount = 4;
         }
-        
-        // 序號對應工具
         const getIdx = () => {
             const map = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤", 6: "⑥" };
             return map[stepCount++];
         };
-
         if (lastCalcState.retention !== 0) {
             html += `<div>${getIdx()} 保留款：${fmt.format(lastCalcState.subtotal)} × ${lastCalcState.rRate}% = <strong>${fmt.format(lastCalcState.retention)}</strong></div>`;
         }
