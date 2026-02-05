@@ -181,12 +181,12 @@
 
         <div class="row">
             <div class="col">
-                <label>未稅金額 (推算)</label>
-                <input type="number" id="rawAmount" readonly tabindex="-1" style="background: #E8E8E8; font-weight: bold;">
+                <label>未稅金額 (可手動修改)</label>
+                <input type="number" id="rawAmount" style="font-weight: bold;" oninput="calculate(false, false, true)">
             </div>
             <div class="col">
-                <label>稅額 (5%)</label>
-                <input type="number" id="taxAmount" readonly tabindex="-1" style="background: #E8E8E8; font-weight: bold;">
+                <label>稅額 (可手動修改)</label>
+                <input type="number" id="taxAmount" style="font-weight: bold;" oninput="calculate(false, false, false, true)">
             </div>
         </div>
 
@@ -584,8 +584,10 @@
         if(pageId === 'vendorPage') { renderVendorTable(); }
     }
 
-    function calculate(isManualRetention = false, isManualClean = false) {
+    function calculate(isManualRetention = false, isManualClean = false, isManualRaw = false, isManualTax = false) {
         const inputVal = parseFloat(document.getElementById('inputAmount').value) || 0;
+        const rawInput = document.getElementById('rawAmount');
+        const taxInput = document.getElementById('taxAmount');
         const retentionInput = document.getElementById('retentionAmount');
         const cleanFeeInput = document.getElementById('cleanFeeAmount');
         const adj = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
@@ -594,21 +596,27 @@
         let raw = 0;
         let tax = 0;
 
-        if (currentDocType === '發票') {
-            if (currentTaxMode === '未稅') {
-                raw = inputVal;
-                tax = Math.round(raw * 0.05);
-            } else {
-                raw = Math.round(inputVal / 1.05);
-                tax = inputVal - raw;
-            }
+        // 如果是手動修改未稅或稅額，則直接取輸入值
+        if (isManualRaw || isManualTax) {
+            raw = parseFloat(rawInput.value) || 0;
+            tax = parseFloat(taxInput.value) || 0;
         } else {
-            raw = inputVal;
-            tax = 0;
+            // 自動推算邏輯
+            if (currentDocType === '發票') {
+                if (currentTaxMode === '未稅') {
+                    raw = inputVal;
+                    tax = Math.round(raw * 0.05);
+                } else {
+                    raw = Math.round(inputVal / 1.05);
+                    tax = inputVal - raw;
+                }
+            } else {
+                raw = inputVal;
+                tax = 0;
+            }
+            rawInput.value = raw || "";
+            taxInput.value = tax || "";
         }
-
-        document.getElementById('rawAmount').value = raw;
-        document.getElementById('taxAmount').value = tax;
         
         const total = raw + tax;
         const hasClean = document.getElementById('cleanCheck').checked;
