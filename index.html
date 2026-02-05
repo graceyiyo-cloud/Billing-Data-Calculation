@@ -197,8 +197,8 @@
                     <input type="number" id="cleanRate" value="0.5" step="0.1" oninput="calculate()">
                 </div>
                 <div class="col">
-                    <label>清潔保險費金額</label>
-                    <input type="number" id="cleanFeeAmount" readonly tabindex="-1" style="background: #E8E8E8;">
+                    <label>清潔保險費金額 (可手動修改)</label>
+                    <input type="number" id="cleanFeeAmount" oninput="calculate(false, true)">
                 </div>
             </div>
             <div class="row">
@@ -584,7 +584,7 @@
         if(pageId === 'vendorPage') { renderVendorTable(); }
     }
 
-    function calculate(isManualRetention = false) {
+    function calculate(isManualRetention = false, isManualClean = false) {
         const inputVal = parseFloat(document.getElementById('inputAmount').value) || 0;
         const retentionInput = document.getElementById('retentionAmount');
         const cleanFeeInput = document.getElementById('cleanFeeAmount');
@@ -613,8 +613,12 @@
         const total = raw + tax;
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
-        const cleanFee = hasClean ? Math.round(total * (cRate / 100)) : 0;
-        cleanFeeInput.value = cleanFee || "";
+        
+        let cleanFee = 0;
+        if (hasClean) {
+            cleanFee = isManualClean ? (parseFloat(cleanFeeInput.value) || 0) : Math.round(total * (cRate / 100));
+        }
+        if(!isManualClean) cleanFeeInput.value = cleanFee || "";
 
         const subtotal = total - cleanFee;
         const hasRetention = document.getElementById('retentionCheck').checked;
