@@ -75,15 +75,13 @@
         .toggle-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #receiptToggle .toggle-btn.active { color: var(--accent); }
 
-        /* 調整表格伸縮邏輯 */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; table-layout: auto; }
         th { background-color: #E8E7E0; color: #333; border: 1px solid var(--border); padding: 10px 8px; font-weight: bold; }
         td { border: 1px solid var(--border); padding: 8px; text-align: left; overflow: hidden; color: var(--text); }
         
-        /* 針對解款行與帳號欄位設置縮小優先權 */
         .col-bank { width: 8.5ch; max-width: 8.5ch; }
         .col-acc { width: 17ch; max-width: 17ch; }
-        .col-desc { width: auto; min-width: 150px; } /* 確保明細有足夠空間 */
+        .col-desc { width: auto; min-width: 150px; }
 
         #recordTable td { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
         #recordTable td:hover { overflow: visible; white-space: normal; word-break: break-all; position: relative; z-index: 1; background: inherit; }
@@ -111,7 +109,6 @@
 
         .filter-row { margin-bottom: 25px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: space-between; }
         .filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .filter-group button { margin: 5px 0; }
         .button-cluster { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 12px; }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -122,7 +119,6 @@
         .draggable-row.dragging { opacity: 0.5; background: #f0f0f0; }
         .drag-over { border-top: 3px dashed var(--primary) !important; }
 
-        /* 序號拖曳把手樣式 */
         .drag-handle { cursor: grab; background-color: #f8f8f8; transition: background 0.2s; }
         .drag-handle:active { cursor: grabbing; background-color: #eee; }
 
@@ -216,6 +212,14 @@
                 <div class="col">
                     <label>保留款金額 (可手動修改)</label>
                     <input type="number" id="retentionAmount" oninput="calculate(true)">
+                </div>
+            </div>
+            <div class="row" style="margin-top: 5px;">
+                <div class="col">
+                    <label class="check-label" style="color: var(--accent);">
+                        <input type="checkbox" id="isTaxInclusiveRetention" onchange="calculate()"> 
+                        發票金額含保留款 (分列應付與發票)
+                    </label>
                 </div>
             </div>
         </div>
@@ -372,13 +376,12 @@
     let currentDocType = '發票';
     let currentTaxMode = '未稅';
 
-    let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "" };
+    let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "", isTaxInclusiveRetention: false };
 
     function setDocType(type) {
         currentDocType = type;
         const btns = document.querySelectorAll('#receiptToggle .toggle-btn');
         btns.forEach(b => b.classList.toggle('active', b.innerText === type));
-        
         const taxGroup = document.getElementById('taxModeToggle');
         if (type === '收據') {
             taxGroup.style.opacity = '0.2';
@@ -455,6 +458,7 @@
             document.getElementById('cleanRate').value = s.cleanRate;
             document.getElementById('retentionCheck').checked = s.retentionCheck;
             document.getElementById('retentionRate').value = s.retentionRate;
+            if(s.isTaxInclusiveRetention !== undefined) document.getElementById('isTaxInclusiveRetention').checked = s.isTaxInclusiveRetention;
             document.getElementById('p1Pct').value = s.p1Pct;
             document.getElementById('p1Mon').value = s.p1Mon;
             document.getElementById('p2Pct').value = s.p2Pct;
@@ -599,6 +603,7 @@
         const cleanFeeInput = document.getElementById('cleanFeeAmount');
         const adj = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNote = document.getElementById('adjustmentNote').value || "加扣款";
+        const isTaxInclusiveRetention = document.getElementById('isTaxInclusiveRetention').checked;
         
         let raw = 0;
         let tax = 0;
@@ -641,7 +646,8 @@
         if(!isManualRetention) retentionInput.value = retention || "";
         
         const net = (subtotal - retention) + adj;
-        lastCalcState = { raw, tax, total, cRate, cleanFee, subtotal, rRate, retention, adj, adjNote };
+        
+        lastCalcState = { raw, tax, total, cRate, cleanFee, subtotal, rRate, retention, adj, adjNote, isTaxInclusiveRetention };
         document.getElementById('netAmount').value = net;
         renderFormula(net);
         renderDetail();
@@ -658,20 +664,33 @@
         let stepCount = 2;
         if (lastCalcState.cleanFee !== 0) {
             html += `<div>② 清潔費(${lastCalcState.cRate}%)：${fmt.format(lastCalcState.total)} × ${lastCalcState.cRate}% = <strong>${fmt.format(lastCalcState.cleanFee)}</strong></div>`;
-            html += `<div class="subtotal-line">③ 小計：${fmt.format(lastCalcState.total)} - ${fmt.format(lastCalcState.cleanFee)} = <strong>${fmt.format(lastCalcState.subtotal)}</strong></div>`;
+            html += `<div class="subtotal-line">③ 小計 (發票基準)：${fmt.format(lastCalcState.total)} - ${fmt.format(lastCalcState.cleanFee)} = <strong>${fmt.format(lastCalcState.subtotal)}</strong></div>`;
             stepCount = 4;
         }
         const getIdx = () => {
-            const map = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤", 6: "⑥" };
+            const map = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤", 6: "⑥", 7: "⑦", 8: "⑧" };
             return map[stepCount++];
         };
+        
         if (lastCalcState.retention !== 0) {
             html += `<div>${getIdx()} 保留款：${fmt.format(lastCalcState.subtotal)} × ${lastCalcState.rRate}% = <strong>${fmt.format(lastCalcState.retention)}</strong></div>`;
         }
         if (lastCalcState.adj !== 0) {
             html += `<div>${getIdx()} ${lastCalcState.adjNote}：<strong>${lastCalcState.adj >= 0 ? '+' : ''}${fmt.format(lastCalcState.adj)}</strong></div>`;
         }
-        html += `<div style="margin-top:5px; border-top:1px solid #EEE; padding-top:5px;">${getIdx()} 淨額：<strong>${fmt.format(currentNet)}</strong></div>`;
+
+        if (lastCalcState.isTaxInclusiveRetention) {
+            // 修正後邏輯：發票金額 = (未稅+稅) - 清潔費 + 加扣款 (若加扣款有列入發票)
+            // 這裡採用最普遍定義：發票金額 = 小計 + 加扣款 (因為小計已經扣除清潔費)
+            const invoiceAmount = lastCalcState.subtotal + lastCalcState.adj;
+            html += `<div style="margin-top:10px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: #FFFBF0;">`;
+            html += `<div style="color: var(--accent); font-weight: bold;">● 本次發票金額：${fmt.format(invoiceAmount)} (含保留款)</div>`;
+            html += `<div style="color: var(--primary); font-weight: bold;">● 本次應付金額：${fmt.format(currentNet)}</div>`;
+            html += `</div>`;
+        } else {
+            html += `<div style="margin-top:5px; border-top:1px solid #EEE; padding-top:5px;">${getIdx()} 淨額：<strong>${fmt.format(currentNet)}</strong></div>`;
+        }
+        
         document.getElementById('processFormula').innerHTML = html;
     }
 
@@ -729,6 +748,7 @@
             cleanRate: document.getElementById('cleanRate').value,
             retentionCheck: document.getElementById('retentionCheck').checked,
             retentionRate: document.getElementById('retentionRate').value,
+            isTaxInclusiveRetention: document.getElementById('isTaxInclusiveRetention').checked,
             p1Pct: document.getElementById('p1Pct').value,
             p1Mon: document.getElementById('p1Mon').value,
             p2Pct: document.getElementById('p2Pct').value,
@@ -763,6 +783,7 @@
             const el = document.getElementById(id);
             if(el) el.value = "";
         });
+        document.getElementById('isTaxInclusiveRetention').checked = false;
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
         if (keptBaseDate) document.getElementById('baseDate').value = keptBaseDate;
@@ -824,13 +845,11 @@
             tr.className = "draggable-row";
             tr.draggable = false;
             tr.dataset.id = item.id;
-            
             tr.ondragstart = (e) => { e.dataTransfer.setData('text/plain', item.id); e.target.classList.add('dragging'); };
             tr.ondragend = (e) => { e.target.classList.remove('dragging'); tr.draggable = false; removeDragOverStyles(); };
             tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
             tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
             tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
-
             tr.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
                 <td style="text-align:center; color:#555; font-weight:bold;" class="drag-handle" onmousedown="enableDrag(this)" onmouseup="disableDrag(this)">${counter++}</td>
@@ -853,11 +872,7 @@
 
     function enableDrag(el) { el.parentElement.draggable = true; }
     function disableDrag(el) { el.parentElement.draggable = false; }
-
-    function removeDragOverStyles() {
-        document.querySelectorAll('.draggable-row').forEach(row => row.classList.remove('drag-over'));
-    }
-
+    function removeDragOverStyles() { document.querySelectorAll('.draggable-row').forEach(row => row.classList.remove('drag-over')); }
     function handleDrop(draggedId, targetId) {
         if (draggedId === targetId) return;
         const dragIdx = db.findIndex(i => i.id === draggedId);
@@ -867,20 +882,14 @@
         localStorage.setItem('paymentRecords', JSON.stringify(db));
         renderTable();
     }
-
     function showFormula(id) {
         const record = db.find(i => i.id === id);
-        if(record) { 
-            document.getElementById('modalBody').innerHTML = record.formula; 
-            document.getElementById('infoModal').style.display = 'flex'; 
-        }
+        if(record) { document.getElementById('modalBody').innerHTML = record.formula; document.getElementById('infoModal').style.display = 'flex'; }
     }
-
     function updateField(id, field, value) {
         const idx = db.findIndex(i => i.id === id);
         if(idx !== -1) { db[idx][field] = value.trim(); localStorage.setItem('paymentRecords', JSON.stringify(db)); }
     }
-
     function updateAmountField(id, el) {
         const idx = db.findIndex(i => i.id === id);
         if(idx !== -1) {
@@ -890,10 +899,8 @@
             updateSummary();
         }
     }
-
     function deleteRecord(id) { if(confirm("確定刪除？")) { db = db.filter(i => i.id !== id); checkedIds.delete(id); localStorage.setItem('paymentRecords', JSON.stringify(db)); renderTable(); } }
     function clearData() { if(confirm("【警告】確定要清空所有的付款排程資料嗎？此操作不可還原。")) { db = []; checkedIds.clear(); localStorage.removeItem('paymentRecords'); renderTable(); } }
-
     function exportBankExcel() {
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
@@ -903,7 +910,6 @@
         const data = filtered.map(i => [i.date, i.bank, i.acc, i.owner, i.amount]);
         generateExcelFile(headers, data, `匯款資料_${filterMon}_${filterComp}`);
     }
-
     function exportClaimExcel() {
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
@@ -913,7 +919,6 @@
         const data = filtered.map(i => [i.date, i.desc, i.amount]);
         generateExcelFile(headers, data, `請款明細_${filterMon}_${filterComp}`);
     }
-
     function initMonthFilter() {
         const months = new Set();
         db.forEach(item => { if(item.saveMonth) months.add(item.saveMonth); });
@@ -924,7 +929,6 @@
         document.getElementById('filterMonth').innerHTML = `<option value="全部">全部月份</option>` + sorted.map(m => `<option value="${m}">${m}</option>`).join('');
         document.getElementById('filterMonth').value = currentLabel;
     }
-
     function initBaseDate() {
         const now = new Date();
         const y = now.getFullYear() - 1911;
@@ -932,13 +936,8 @@
         const d = now.getDate().toString().padStart(2, '0');
         document.getElementById('baseDate').value = `${y}${m}${d}`;
     }
-
     document.addEventListener('click', e => { if (!e.target.closest('.col')) document.getElementById('searchResults').style.display = 'none'; });
-    window.onload = () => { 
-        db.forEach(i => checkedIds.add(i.id));
-        initMonthFilter(); 
-        initBaseDate();
-    };
+    window.onload = () => { db.forEach(i => checkedIds.add(i.id)); initMonthFilter(); initBaseDate(); };
 </script>
 
 </body>
