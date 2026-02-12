@@ -286,12 +286,14 @@
                     <option value="長川">長川</option>
                     <option value="上川">上川</option>
                 </select>
+                <label style="margin:0; margin-left:10px;">日期篩選：</label>
+                <input type="text" id="filterDate" placeholder="輸入日期(如11502)" style="width: 130px; padding: 5px; font-weight: bold;" oninput="renderTable()">
             </div>
             <div class="button-cluster">
-                <button class="btn-info" onclick="autoFillRecordsByOwner()">按戶名補齊資料</button>
-                <button class="btn-save" style="background: var(--danger); width: auto; padding: 10px 20px; margin: 0;" onclick="clearData()">清空所有排程</button>
-                <button class="btn-info" style="background: var(--dark);" onclick="exportBankExcel()">匯出匯款資料</button>
-                <button class="btn-excel" onclick="exportClaimExcel()">匯出請款明細</button>
+                <button class="btn-info" id="btnCopyClaim" style="background: #34495e;" onclick="copyToClipboard('claim', this)">📋 複製請款明細 (貼Excel)</button>
+                <button class="btn-info" id="btnCopyBank" style="background: #a67c52;" onclick="copyToClipboard('bank', this)">📋 複製匯款資料 (貼Excel)</button>
+                <button class="btn-info" style="background: #16a085;" onclick="autoFillRecordsByOwner()">按戶名補齊資料</button>
+                <button class="btn-save" style="background: #a93226; width: auto; padding: 10px 20px; margin: 0;" onclick="clearData()">清空所有排程</button>
             </div>
         </div>
         <table id="recordTable">
@@ -399,30 +401,6 @@
         const btns = document.querySelectorAll('#taxModeToggle .toggle-btn');
         btns.forEach(b => b.classList.toggle('active', b.innerText === mode));
         calculate();
-    }
-
-    function generateExcelFile(headers, data, filename) {
-        let xml = '<?xml version="1.0" encoding="utf-8"?><?mso-application progid="Excel.Sheet"?>';
-        xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
-        xml += '<Worksheet ss:Name="Sheet1"><Table>';
-        xml += '<Row>';
-        headers.forEach(h => xml += `<Cell><Data ss:Type="String">${h}</Data></Cell>`);
-        xml += '</Row>';
-        data.forEach(row => {
-            xml += '<Row>';
-            row.forEach(cell => {
-                const isNumber = !isNaN(cell) && cell !== "" && typeof cell === 'number';
-                const type = isNumber ? 'Number' : 'String';
-                xml += `<Cell><Data ss:Type="${type}">${cell}</Data></Cell>`;
-            });
-            xml += '</Row>';
-        });
-        xml += '</Table></Worksheet></Workbook>';
-        const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = filename + ".xls";
-        link.click();
     }
 
     function searchVendor(val) {
@@ -552,9 +530,15 @@
 
     function exportVendorExcel() {
         if(vendors.length === 0) return alert("目前無廠商資料可匯出");
-        const headers = ["廠商名稱", "解款行", "帳號", "戶名"];
-        const data = vendors.map(v => [v.name, v.bankCode, v.account, v.owner]);
-        generateExcelFile(headers, data, `廠商資料庫_${new Date().toLocaleDateString().replace(/\//g,'-')}`);
+        let csvContent = "\ufeff廠商名稱,解款行,帳號,戶名\n";
+        vendors.forEach(v => {
+            csvContent += `"${v.name}","${v.bankCode || ''}","${v.account || ''}","${v.owner || ''}"\n`;
+        });
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `廠商資料庫_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+        link.click();
     }
 
     function renderVendorTable() {
@@ -566,7 +550,6 @@
                 <td><span class="editable" onblur="updateVendorField('${v.id}', 'account', this.innerText)" contenteditable="true">${v.account || ''}</span></td>
                 <td><span class="editable" onblur="updateVendorField('${v.id}', 'owner', this.innerText)" contenteditable="true">${v.owner || ''}</span></td>
                 <td class="action-cell">
-                    <button class="btn-edit-tool" onclick="alert('請直接在黃色欄位內修改')">改</button>
                     <button class="btn-del" onclick="deleteVendor('${v.id}')">×</button>
                 </td>
             </tr>
@@ -680,8 +663,6 @@
         }
 
         if (lastCalcState.isTaxInclusiveRetention) {
-            // 修正後邏輯：發票金額 = (未稅+稅) - 清潔費 + 加扣款 (若加扣款有列入發票)
-            // 這裡採用最普遍定義：發票金額 = 小計 + 加扣款 (因為小計已經扣除清潔費)
             const invoiceAmount = lastCalcState.subtotal + lastCalcState.adj;
             html += `<div style="margin-top:10px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: #FFFBF0;">`;
             html += `<div style="color: var(--accent); font-weight: bold;">● 本次發票金額：${fmt.format(invoiceAmount)} (含保留款)</div>`;
@@ -819,7 +800,15 @@
     function updateSummary() {
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
+        const filterDateVal = document.getElementById('filterDate').value.trim();
+        
+        const filtered = db.filter(item => {
+            const matchComp = (filterComp === "全部" || item.company === filterComp);
+            const matchMon = (filterMon === "全部" || item.saveMonth === filterMon);
+            const matchDate = (!filterDateVal || item.date.includes(filterDateVal));
+            return matchComp && matchMon && matchDate;
+        });
+        
         let filteredSum = 0;
         let checkedSum = 0;
         filtered.forEach(i => {
@@ -833,23 +822,25 @@
     function renderTable() {
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
+        const filterDateVal = document.getElementById('filterDate').value.trim();
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = "";
         let counter = 1;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon));
+        
+        const filtered = db.filter(item => {
+            const matchComp = (filterComp === "全部" || item.company === filterComp);
+            const matchMon = (filterMon === "全部" || item.saveMonth === filterMon);
+            const matchDate = (!filterDateVal || item.date.includes(filterDateVal));
+            return matchComp && matchMon && matchDate;
+        });
+
         filtered.forEach(item => {
             if (!checkedIds.has(item.id) && document.getElementById('selectAll').checked) {
                 checkedIds.add(item.id);
             }
             const tr = document.createElement('tr');
             tr.className = "draggable-row";
-            tr.draggable = false;
             tr.dataset.id = item.id;
-            tr.ondragstart = (e) => { e.dataTransfer.setData('text/plain', item.id); e.target.classList.add('dragging'); };
-            tr.ondragend = (e) => { e.target.classList.remove('dragging'); tr.draggable = false; removeDragOverStyles(); };
-            tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
-            tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
-            tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
             tr.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
                 <td style="text-align:center; color:#555; font-weight:bold;" class="drag-handle" onmousedown="enableDrag(this)" onmouseup="disableDrag(this)">${counter++}</td>
@@ -865,6 +856,11 @@
                     <button class="btn-del" onclick="deleteRecord('${item.id}')">×</button>
                 </td>
             `;
+            tr.ondragstart = (e) => { e.dataTransfer.setData('text/plain', item.id); e.target.classList.add('dragging'); };
+            tr.ondragend = (e) => { e.target.classList.remove('dragging'); tr.draggable = false; removeDragOverStyles(); };
+            tr.ondragover = (e) => { e.preventDefault(); tr.classList.add('drag-over'); };
+            tr.ondragleave = (e) => { tr.classList.remove('drag-over'); };
+            tr.ondrop = (e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), item.id); };
             tbody.appendChild(tr);
         });
         updateSummary();
@@ -901,24 +897,46 @@
     }
     function deleteRecord(id) { if(confirm("確定刪除？")) { db = db.filter(i => i.id !== id); checkedIds.delete(id); localStorage.setItem('paymentRecords', JSON.stringify(db)); renderTable(); } }
     function clearData() { if(confirm("【警告】確定要清空所有的付款排程資料嗎？此操作不可還原。")) { db = []; checkedIds.clear(); localStorage.removeItem('paymentRecords'); renderTable(); } }
-    function exportBankExcel() {
+    
+    function copyToClipboard(type, btn) {
         const filterComp = document.getElementById('filterCompany').value;
         const filterMon = document.getElementById('filterMonth').value;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon) && checkedIds.has(item.id));
-        if(filtered.length === 0) return alert("目前無「勾選」資料可匯出");
-        const headers = ["日期", "解款行", "帳號", "戶名", "金額"];
-        const data = filtered.map(i => [i.date, i.bank, i.acc, i.owner, i.amount]);
-        generateExcelFile(headers, data, `匯款資料_${filterMon}_${filterComp}`);
+        const filterDateVal = document.getElementById('filterDate').value.trim();
+        
+        const filtered = db.filter(item => {
+            const matchComp = (filterComp === "全部" || item.company === filterComp);
+            const matchMon = (filterMon === "全部" || item.saveMonth === filterMon);
+            const matchDate = (!filterDateVal || item.date.includes(filterDateVal));
+            return matchComp && matchMon && matchDate && checkedIds.has(item.id);
+        });
+        
+        if (filtered.length === 0) return;
+        
+        let text = "";
+        if (type === 'claim') {
+            text = filtered.map(i => `${i.date}\t${i.desc}\t${i.amount}`).join('\n');
+        } else if (type === 'bank') {
+            text = filtered.map(i => `${i.date}\t${i.bank}\t${i.acc}\t${i.owner}\t${i.amount}`).join('\n');
+        }
+
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const originalText = btn.innerText;
+            const originalBg = btn.style.background;
+            btn.innerText = "✅ 已成功複製";
+            btn.style.background = "#1b5e20"; 
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = originalBg; 
+            }, 2000);
+        } catch (err) {}
+        document.body.removeChild(textArea);
     }
-    function exportClaimExcel() {
-        const filterComp = document.getElementById('filterCompany').value;
-        const filterMon = document.getElementById('filterMonth').value;
-        const filtered = db.filter(item => (filterComp === "全部" || item.company === filterComp) && (filterMon === "全部" || item.saveMonth === filterMon) && checkedIds.has(item.id));
-        if(filtered.length === 0) return alert("目前無「勾選」資料可匯出");
-        const headers = ["日期", "明細內容", "金額"];
-        const data = filtered.map(i => [i.date, i.desc, i.amount]);
-        generateExcelFile(headers, data, `請款明細_${filterMon}_${filterComp}`);
-    }
+
     function initMonthFilter() {
         const months = new Set();
         db.forEach(item => { if(item.saveMonth) months.add(item.saveMonth); });
