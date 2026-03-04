@@ -463,11 +463,14 @@
             document.getElementById('p1Mon').value = s.p1Mon;
             document.getElementById('p2Pct').value = s.p2Pct;
             document.getElementById('p2Mon').value = s.p2Mon;
+            
+            // ✂️ 修正：不再從歷史紀錄覆蓋當前的「付款基準日」，以維持手動 key 完後的連貫性
+            // if(s.baseDate) document.getElementById('baseDate').value = s.baseDate;
+
             calculate();
         }
     }
 
-    // ✂️ 更新後的功能：自動判斷正負號樣式 (移除前面的橫線)
     function copyLastPart(btn) {
         const note = document.getElementById('workNote').value.trim();
         if (!note) return;
@@ -479,9 +482,7 @@
         const adjNote = document.getElementById('adjustmentNote').value.trim();
 
         if (adjAmt !== 0 && adjNote) {
-            // 判斷符號：金額大於0且沒有手動輸入符號時加上 "+"
             const sign = adjAmt > 0 ? "+" : ""; 
-            // 修正：移除前面的橫線，直接銜接符號
             copyText += `${sign}${adjNote}${adjAmt}元`;
         }
         
@@ -819,7 +820,6 @@
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         
-        // 更新功能：儲存時套用邏輯，移除橫線
         if (adjAmt !== 0 && adjNoteText) {
             const sign = adjAmt > 0 ? "+" : "";
             baseDesc += `${sign}${adjNoteText}${adjAmt}元`;
@@ -861,10 +861,13 @@
             checkedIds.add(item2.id);
         }
         localStorage.setItem('paymentRecords', JSON.stringify(db));
+        
+        // ✂️ 修正：傳入當前 date 以確保儲存完後「基準日」不會被還原
         clearInputFields(currentBaseDate, currentDocType, currentTaxMode);
     }
 
     function clearInputFields(keptBaseDate, keptDocType, keptTaxMode) {
+        // baseDate 不在清理清單中，會被手動填回或保留
         ['vendorSearch', 'workNote', 'inputAmount', 'rawAmount', 'taxAmount', 'cleanFeeAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.value = "";
@@ -872,8 +875,14 @@
         document.getElementById('isTaxInclusiveRetention').checked = false;
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
-        if (keptBaseDate) document.getElementById('baseDate').value = keptBaseDate;
-        else initBaseDate();
+
+        // ✂️ 修正：優先保留 keptBaseDate (即您剛 key 的日期)，只有在完全沒資料時才初始化
+        if (keptBaseDate) {
+            document.getElementById('baseDate').value = keptBaseDate;
+        } else if (!document.getElementById('baseDate').value) {
+            initBaseDate();
+        }
+
         if (keptDocType) setDocType(keptDocType);
         if (keptTaxMode) setTaxMode(keptTaxMode);
     }
