@@ -467,7 +467,7 @@
         }
     }
 
-    // ✂️ 更新後的功能：自動判斷正負號樣式
+    // ✂️ 更新後的功能：自動判斷正負號樣式 (移除前面的橫線)
     function copyLastPart(btn) {
         const note = document.getElementById('workNote').value.trim();
         if (!note) return;
@@ -481,7 +481,8 @@
         if (adjAmt !== 0 && adjNote) {
             // 判斷符號：金額大於0且沒有手動輸入符號時加上 "+"
             const sign = adjAmt > 0 ? "+" : ""; 
-            copyText += `-${sign}${adjNote}${adjAmt}元`;
+            // 修正：移除前面的橫線，直接銜接符號
+            copyText += `${sign}${adjNote}${adjAmt}元`;
         }
         
         const textArea = document.createElement("textarea");
@@ -818,10 +819,10 @@
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         
-        // 更新功能：儲存時也套用正負號判斷邏輯
+        // 更新功能：儲存時套用邏輯，移除橫線
         if (adjAmt !== 0 && adjNoteText) {
             const sign = adjAmt > 0 ? "+" : "";
-            baseDesc += `-${sign}${adjNoteText}${adjAmt}元`;
+            baseDesc += `${sign}${adjNoteText}${adjAmt}元`;
         }
 
         const isInstallment = p1Pct < 100;
