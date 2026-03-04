@@ -448,22 +448,32 @@
         document.getElementById('tempOwner').value = owner || "";
         document.getElementById('searchResults').style.display = 'none';
 
+        // 🔍 自動帶出歷史設定邏輯：
+        // 根據戶名 (Owner) 尋找最後一筆紀錄
         const lastRecord = [...db].reverse().find(r => r.owner === owner);
         if (lastRecord && lastRecord.settings) {
             const s = lastRecord.settings;
+            // 帶出單據類型、稅務模式、計算基準
             if (s.docType) setDocType(s.docType);
             if (s.taxMode) setTaxMode(s.taxMode);
             if (s.calcBase) setCalcBase(s.calcBase); 
+            // 帶出清潔保險費設定
             document.getElementById('cleanCheck').checked = s.cleanCheck;
             document.getElementById('cleanRate').value = s.cleanRate;
+            // 帶出保留款設定
             document.getElementById('retentionCheck').checked = s.retentionCheck;
             document.getElementById('retentionRate').value = s.retentionRate;
             if(s.isTaxInclusiveRetention !== undefined) document.getElementById('isTaxInclusiveRetention').checked = s.isTaxInclusiveRetention;
+            // 帶出付款比例與期數
             document.getElementById('p1Pct').value = s.p1Pct;
             document.getElementById('p1Mon').value = s.p1Mon;
             document.getElementById('p2Pct').value = s.p2Pct;
             document.getElementById('p2Mon').value = s.p2Mon;
-            calculate();
+            
+            // ✂️ 修正：不再從歷史紀錄覆蓋當前的「付款基準日」，以維持手動 key 完後的連貫性
+            // if(s.baseDate) document.getElementById('baseDate').value = s.baseDate;
+
+            calculate(); // 帶入後重新計算
         }
     }
 
