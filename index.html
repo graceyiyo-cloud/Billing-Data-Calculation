@@ -463,10 +463,6 @@
             document.getElementById('p1Mon').value = s.p1Mon;
             document.getElementById('p2Pct').value = s.p2Pct;
             document.getElementById('p2Mon').value = s.p2Mon;
-            
-            // ✂️ 修正：不再從歷史紀錄覆蓋當前的「付款基準日」，以維持手動 key 完後的連貫性
-            // if(s.baseDate) document.getElementById('baseDate').value = s.baseDate;
-
             calculate();
         }
     }
@@ -810,13 +806,18 @@
         const saveMonthLabel = `${new Date().getFullYear()}.${(new Date().getMonth()+1).toString().padStart(2, '0')}`;
         const p1Pct = parseFloat(document.getElementById('p1Pct').value);
         const pay1 = Math.round(net * (p1Pct / 100));
-        const workNote = document.getElementById('workNote').value || "工程";
+        const workNoteElement = document.getElementById('workNote');
+        const workNote = workNoteElement.value || "工程";
         const hasRetention = document.getElementById('retentionCheck').checked;
         const rRate = document.getElementById('retentionRate').value;
         const adjAmt = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNoteText = document.getElementById('adjustmentNote').value.trim();
         const currentBaseDate = document.getElementById('baseDate').value; 
         
+        // ✂️ 新增邏輯：判斷工程內容的前綴 (第一個 - 之前的內容)
+        const firstDashIdx = workNote.indexOf('-');
+        const keptPrefix = firstDashIdx !== -1 ? workNote.substring(0, firstDashIdx + 1) : "";
+
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
         
@@ -862,21 +863,26 @@
         }
         localStorage.setItem('paymentRecords', JSON.stringify(db));
         
-        // ✂️ 修正：傳入當前 date 以確保儲存完後「基準日」不會被還原
-        clearInputFields(currentBaseDate, currentDocType, currentTaxMode);
+        // ✂️ 修正：傳入前綴 keptPrefix 以確保儲存完後保留
+        clearInputFields(currentBaseDate, currentDocType, currentTaxMode, keptPrefix);
     }
 
-    function clearInputFields(keptBaseDate, keptDocType, keptTaxMode) {
-        // baseDate 不在清理清單中，會被手動填回或保留
+    function clearInputFields(keptBaseDate, keptDocType, keptTaxMode, keptPrefix) {
+        // 清理欄位，但對工程內容進行特殊處理
         ['vendorSearch', 'workNote', 'inputAmount', 'rawAmount', 'taxAmount', 'cleanFeeAmount', 'retentionAmount', 'adjustmentNote', 'adjustmentAmount', 'netAmount', 'p1Pct', 'p1Mon', 'p2Pct', 'p2Mon', 'tempBankCode', 'tempAccount', 'tempOwner'].forEach(id => {
             const el = document.getElementById(id);
-            if(el) el.value = "";
+            if(el) {
+                if (id === 'workNote') {
+                    el.value = keptPrefix || ""; // ✂️ 修正：保留前綴
+                } else {
+                    el.value = "";
+                }
+            }
         });
         document.getElementById('isTaxInclusiveRetention').checked = false;
         document.getElementById('processFormula').innerHTML = "請輸入資料...";
         document.getElementById('paymentDetail').innerHTML = "";
 
-        // ✂️ 修正：優先保留 keptBaseDate (即您剛 key 的日期)，只有在完全沒資料時才初始化
         if (keptBaseDate) {
             document.getElementById('baseDate').value = keptBaseDate;
         } else if (!document.getElementById('baseDate').value) {
