@@ -160,7 +160,10 @@
         <div class="row">
             <div class="col">
                 <label>工程內容 (明細)</label>
-                <input type="text" id="workNote" placeholder="例如：木地板已完成54戶請款">
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <input type="text" id="workNote" placeholder="例如：安西段-玹實-1F頂板紮筋">
+                    <button type="button" class="btn-info" style="padding: 5px 12px; font-size: 0.85rem; width: auto; white-space: nowrap; background: var(--accent);" onclick="copyLastPart(this)">✂️ 複製結尾</button>
+                </div>
             </div>
         </div>
 
@@ -464,6 +467,31 @@
         }
     }
 
+    // ✂️ 新功能：抓取最後一個 - 符號後的文字並複製
+    function copyLastPart(btn) {
+        const note = document.getElementById('workNote').value.trim();
+        if (!note) return;
+        
+        // 抓取最後一個 "-" 符號之後的文字
+        const parts = note.split('-');
+        const lastPart = parts[parts.length - 1].trim();
+        
+        // 執行複製動作
+        const textArea = document.createElement("textarea");
+        textArea.value = lastPart;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const originalText = btn.innerText;
+            btn.innerText = "✅ 已複製";
+            setTimeout(() => { btn.innerText = originalText; }, 1200);
+        } catch (err) {
+            console.error("複製失敗", err);
+        }
+        document.body.removeChild(textArea);
+    }
+
     function exportFullBackup() {
         const backupData = { paymentRecords: db, vendorList: vendors, backupDate: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
@@ -634,7 +662,6 @@
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
         
-        // --- 根據計算基準決定清潔費與保留款的母數 ---
         const baseForDeduction = (currentCalcBase === '含稅') ? total : raw;
 
         let cleanFee = 0;
@@ -650,18 +677,14 @@
         
         if(!isManualRetention) retentionInput.value = retention || "";
         
-        // --- 最終淨額計算 ---
         let net = 0;
         if (currentCalcBase === '含稅') {
             net = (subtotal - retention) + adj;
         } else {
-            // 未稅基準：(未稅額 - 清潔費 - 保留款) = 稅前餘額
-            // 稅額 = 稅前餘額 * 5% (這是您要求的調整：根據扣除後的餘額計算稅額)
             const amountBeforeTax = subtotal - retention;
             const finalTax = (currentDocType === '發票' && !isManualTax) ? Math.round(amountBeforeTax * 0.05) : tax;
             net = amountBeforeTax + finalTax + adj;
             
-            // 如果是自動計算，把更新後的稅金顯示回輸入框
             if (!isManualTax && currentDocType === '發票') {
                 taxInput.value = finalTax;
                 tax = finalTax;
@@ -724,7 +747,6 @@
             if (lastCalcState.calcBase === '含稅') {
                 invoiceAmount = lastCalcState.subtotal + lastCalcState.adj;
             } else {
-                // 發票金額 = (未稅小計 + 稅額) + 加扣款 = (扣除清潔費後的未稅額 + 對應稅額) + 加扣款
                 const calculatedInvoiceTax = Math.round(lastCalcState.subtotal * 0.05);
                 invoiceAmount = lastCalcState.subtotal + calculatedInvoiceTax + lastCalcState.adj;
             }
