@@ -1084,9 +1084,64 @@
             return matchComp && matchMon && matchDate && checkedIds.has(item.id);
         });
         if (filtered.length === 0) return;
+        
+        // --- 針對亞鼎營造的合併邏輯開始 ---
+        const grouped = [];
+        const processedIds = new Set();
+
+        for (let i = 0; i < filtered.length; i++) {
+            const item = filtered[i];
+            if (processedIds.has(item.id)) continue;
+
+            // 判斷是否為「亞鼎」相關資料 (若戶名包含亞鼎，或明細內包含-亞鼎-)
+            const isYaDing = (item.owner && item.owner.includes("亞鼎營造")) || (item.desc && item.desc.includes("-亞鼎-"));
+            let mergedItem = { ...item };
+            
+            if (isYaDing) {
+                const projectSite = item.desc.split('-')[0];
+                let mergeCandidates = [item];
+
+                // 往後尋找相同條件的項目
+                for (let j = i + 1; j < filtered.length; j++) {
+                    const nextItem = filtered[j];
+                    if (processedIds.has(nextItem.id)) continue;
+                    
+                    const nextIsYaDing = (nextItem.owner && nextItem.owner.includes("亞鼎營造")) || (nextItem.desc && nextItem.desc.includes("-亞鼎-"));
+                    const nextProjectSite = nextItem.desc.split('-')[0];
+                    
+                    // 合併條件：同為亞鼎、日期相同、案場相同、公司相同
+                    if (nextIsYaDing && nextItem.date === item.date && nextProjectSite === projectSite && nextItem.company === item.company) {
+                        mergeCandidates.push(nextItem);
+                    }
+                }
+
+                // 若有兩筆以上，執行合併處理
+                if (mergeCandidates.length > 1) {
+                    let mergedDesc = mergeCandidates.map(c => `${c.desc}=${fmt.format(c.amount)}`).join('+');
+                    let totalAmount = mergeCandidates.reduce((sum, c) => sum + c.amount, 0);
+                    
+                    mergedItem.desc = mergedDesc;
+                    mergedItem.amount = totalAmount;
+                    
+                    mergeCandidates.forEach(c => processedIds.add(c.id));
+                } else {
+                    processedIds.add(item.id);
+                }
+            } else {
+                processedIds.add(item.id);
+            }
+            
+            grouped.push(mergedItem);
+        }
+        // --- 合併邏輯結束 ---
+
         let text = "";
-        if (type === 'claim') text = filtered.map(i => `${i.date}\t${i.desc}\t${i.amount}`).join('\n');
-        else if (type === 'bank') text = filtered.map(i => `${i.date}\t${i.bank}\t${i.acc}\t${i.owner}\t${i.amount}`).join('\n');
+        if (type === 'claim') {
+            text = grouped.map(i => `${i.date}\t${i.desc}\t${i.amount}`).join('\n');
+        } else if (type === 'bank') {
+            text = grouped.map(i => `${i.date}\t${i.bank}\t${i.acc}\t${i.owner}\t${i.amount}`).join('\n');
+        }
+        
         const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
