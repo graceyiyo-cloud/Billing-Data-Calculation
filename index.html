@@ -100,7 +100,7 @@
         
         .amount-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
         
-        .action-cell { text-align: center; width: 90px; }
+        .action-cell { text-align: center; width: 60px; }
         .btn-calc { color: var(--info); border: 1.5px solid var(--info); background: white; cursor: pointer; border-radius: 50%; width: 26px; height: 26px; font-size: 0.75rem; font-weight: bold; padding: 0; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
         .btn-calc:hover { background: var(--info); color: white; }
         .btn-edit-tool { color: var(--accent); border: 1.5px solid var(--accent); background: white; cursor: pointer; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold; margin-right: 5px; transition: 0.2s; vertical-align: middle; }
@@ -319,6 +319,7 @@
             <thead>
                 <tr>
                     <th style="width: 30px; text-align: center;"><input type="checkbox" id="selectAll" checked onclick="toggleSelectAll(this)"></th>
+                    <th style="width: 30px; text-align: center;">算</th>
                     <th style="width: 35px;">No.</th>
                     <th style="width: 8.5ch;">日期</th>
                     <th class="sortable col-desc" onclick="toggleSort('desc')">明細內容</th>
@@ -1018,6 +1019,7 @@
             tr.dataset.id = item.id;
             tr.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="item-check" data-id="${item.id}" ${checkedIds.has(item.id) ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)"></td>
+                <td style="text-align:center;"><button class="btn-calc" onclick="showFormula('${item.id}')" title="查看計算過程" style="margin-right:0">算</button></td>
                 <td style="text-align:center; color:#555; font-weight:bold;" class="drag-handle" onmousedown="enableDrag(this)" onmouseup="disableDrag(this)">${counter++}</td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'date', this.innerText)" contenteditable="true">${item.date}</span></td>
                 <td class="col-desc"><span class="editable" onblur="updateField('${item.id}', 'desc', this.innerText)" contenteditable="true">${item.desc}</span></td>
@@ -1027,7 +1029,6 @@
                 <td><span class="editable" onblur="updateField('${item.id}', 'owner', this.innerText)" contenteditable="true">${item.owner || ''}</span></td>
                 <td><span class="editable" onblur="updateField('${item.id}', 'company', this.innerText)" contenteditable="true">${item.company || ''}</span></td>
                 <td class="action-cell">
-                    <button class="btn-calc" onclick="showFormula('${item.id}')" title="查看計算過程">算</button>
                     <button class="btn-del" onclick="deleteRecord('${item.id}')">×</button>
                 </td>
             `;
