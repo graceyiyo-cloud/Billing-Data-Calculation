@@ -404,7 +404,7 @@
     let currentTaxMode = '未稅';
     let currentCalcBase = '含稅'; 
 
-    let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "", isTaxInclusiveRetention: false, calcBase: '含稅' };
+    let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "", isTaxInclusiveRetention: false, calcBase: '含稅', cleanCheck: true, retentionCheck: true };
 
     function setDocType(type) {
         currentDocType = type;
@@ -715,7 +715,7 @@
             }
         }
         
-        lastCalcState = { raw, tax, total, cRate, cleanFee, subtotal, rRate, retention, adj, adjNote, isTaxInclusiveRetention: isTaxInclusiveRetentionChecked, calcBase: currentCalcBase };
+        lastCalcState = { raw, tax, total, cRate, cleanFee, subtotal, rRate, retention, adj, adjNote, isTaxInclusiveRetention: isTaxInclusiveRetentionChecked, calcBase: currentCalcBase, cleanCheck: hasClean, retentionCheck: hasRetention };
         document.getElementById('netAmount').value = net;
         renderFormula(net);
         renderDetail();
@@ -732,7 +732,6 @@
         const state = lastCalcState;
         const isRetentionChecked = state.isTaxInclusiveRetention;
         
-        // 判斷是否勾選了強制以含稅顯示，若未勾選則預設為『未稅』顯示
         const forceTaxView = document.getElementById('forceTaxInclusiveView').checked;
         const logicBase = forceTaxView ? '含稅' : '未稅';
 
@@ -742,9 +741,7 @@
             return circles[currentStep++ - 1] || `${currentStep++}`;
         };
 
-        // ① 基礎金額
         if (logicBase === '含稅') {
-            // 如果原本是未稅模式但強制含稅顯示，基礎值需使用 state.total (raw + tax)
             const displayTotal = (state.calcBase === '未稅') ? (state.raw + state.tax) : state.total;
             html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>總金額：${fmt.format(state.raw)}+稅${fmt.format(state.tax)}=<strong>${fmt.format(displayTotal)}</strong></span></div>`;
         } else {
@@ -753,18 +750,16 @@
 
         const baseVal = (logicBase === '含稅') ? (state.calcBase === '未稅' ? state.raw + state.tax : state.total) : state.raw;
 
-        // ② 清潔費 (重新計算顯示值以符合邏輯基準)
-        if (state.cleanFee !== 0 || state.cRate !== 0) {
+        if (state.cleanCheck) {
             const displayCleanFee = Math.round(baseVal * (state.cRate / 100));
             html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>清潔費：${fmt.format(baseVal)} × ${state.cRate}% = <strong>-${fmt.format(displayCleanFee)}</strong></span></div>`;
-            const displaySubtotal = baseVal - displayCleanFee;
-            html += `<div class="indent-row"><span class="subtotal-line">小計：${fmt.format(baseVal)} - ${fmt.format(displayCleanFee)} = <strong>${fmt.format(displaySubtotal)}</strong></span></div>`;
+            const displaySubtotalLine = baseVal - displayCleanFee;
+            html += `<div class="indent-row"><span class="subtotal-line">小計：${fmt.format(baseVal)} - ${fmt.format(displayCleanFee)} = <strong>${fmt.format(displaySubtotalLine)}</strong></span></div>`;
         }
 
-        const displaySubtotal = baseVal - Math.round(baseVal * (state.cRate / 100));
+        const displaySubtotal = baseVal - (state.cleanCheck ? Math.round(baseVal * (state.cRate / 100)) : 0);
 
-        // ③ 保留款 (重新計算顯示值以符合邏輯基準)
-        if (state.retention !== 0 || state.rRate !== 0) {
+        if (state.retentionCheck) {
             const displayRetention = Math.round(displaySubtotal * (state.rRate / 100));
             html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>保留款：${fmt.format(displaySubtotal)} × ${state.rRate}% = <strong>-${fmt.format(displayRetention)}</strong></span></div>`;
             if (logicBase === '未稅') {
@@ -773,9 +768,6 @@
             }
         }
 
-        const displayFinalSubtotal = displaySubtotal - Math.round(displaySubtotal * (state.rRate / 100));
-
-        // 加扣款項
         if (state.adj !== 0) {
             const adjType = state.adj > 0 ? "加項" : "扣項";
             const adjSign = state.adj > 0 ? "+" : "-";
@@ -784,7 +776,6 @@
 
         html += `<div style="margin: 8px 0; border-top: 1px solid #CCC; width: 80%;"></div>`;
 
-        // 計算發票金額顯示邏輯
         let finalInvoice = 0;
         if (logicBase === '未稅') {
             const invRaw = displaySubtotal + state.adj;
@@ -798,17 +789,16 @@
             html += `<div class="formula-row"><span class="formula-num">●</span><span>本次發票金額：${fmt.format(finalInvoice)} (含保留款)</span></div>`;
         }
 
-        // 應付金額算式
         let payableProcess = "";
         let hasOp = false;
         if (logicBase === '含稅') {
             payableProcess = `${fmt.format(displaySubtotal)}`;
             const displayRetention = Math.round(displaySubtotal * (state.rRate / 100));
-            if (displayRetention !== 0) { payableProcess += `-${fmt.format(displayRetention)}`; hasOp = true; }
+            if (state.retentionCheck && displayRetention !== 0) { payableProcess += `-${fmt.format(displayRetention)}`; hasOp = true; }
             if (state.adj !== 0) { payableProcess += `${state.adj > 0 ? '+' : '-'}${fmt.format(Math.abs(state.adj))}`; hasOp = true; }
         } else {
             const displayRetention = Math.round(displaySubtotal * (state.rRate / 100));
-            if (displayRetention !== 0) {
+            if (state.retentionCheck && displayRetention !== 0) {
                 payableProcess = `(${fmt.format(displaySubtotal)}-${fmt.format(displayRetention)})`;
                 hasOp = true;
             } else {
