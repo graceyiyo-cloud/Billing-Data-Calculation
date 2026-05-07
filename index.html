@@ -203,15 +203,6 @@
         </div>
 
         <div class="config-box">
-            <div class="row" style="margin-bottom: 10px;">
-                <div class="col">
-                    <label>計算基準 (影響加扣款前的計算順序)</label>
-                    <div class="toggle-group" id="calcBaseToggle">
-                        <button class="toggle-btn active" onclick="setCalcBase('含稅')">全額(含稅)</button>
-                        <button class="toggle-btn" onclick="setCalcBase('未稅')">未稅額</button>
-                    </div>
-                </div>
-            </div>
             <div class="row">
                 <div class="col">
                     <label class="check-label"><input type="checkbox" id="cleanCheck" checked onchange="calculate()"> 清潔保險 (%)</label>
@@ -402,9 +393,14 @@
     
     let currentDocType = '發票';
     let currentTaxMode = '未稅';
-    let currentCalcBase = '含稅'; 
+    let currentCalcBase = '未稅'; // 修改：固定為未稅基準
 
-    let lastCalcState = { raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, adj: 0, adjNote: "", isTaxInclusiveRetention: false, calcBase: '含稅', cleanCheck: true, retentionCheck: true };
+    let lastCalcState = { 
+        raw: 0, tax: 0, total: 0, cRate: 0, cleanFee: 0, subtotal: 0, rRate: 0, retention: 0, 
+        adj: 0, adjNote: "", isTaxInclusiveRetention: false, calcBase: '未稅', 
+        cleanCheck: true, retentionCheck: true,
+        isManualClean: false, isManualRetention: false, isManualNet: false 
+    };
 
     function setDocType(type) {
         currentDocType = type;
@@ -429,10 +425,9 @@
         calculate();
     }
 
+    // 備註：setCalcBase 已不再透過 UI 呼叫，僅保留邏輯一致性
     function setCalcBase(base) {
-        currentCalcBase = base;
-        const btns = document.querySelectorAll('#calcBaseToggle .toggle-btn');
-        btns.forEach(b => b.classList.toggle('active', b.innerText.includes(base)));
+        currentCalcBase = '未稅';
         calculate();
     }
 
@@ -465,7 +460,8 @@
             const s = lastRecord.settings;
             if (s.docType) setDocType(s.docType);
             if (s.taxMode) setTaxMode(s.taxMode);
-            if (s.calcBase) setCalcBase(s.calcBase); 
+            // 修改：強制忽略廠商設定中的含稅計算基準
+            currentCalcBase = '未稅'; 
             document.getElementById('cleanCheck').checked = s.cleanCheck;
             document.getElementById('cleanRate').value = s.cleanRate;
             document.getElementById('retentionCheck').checked = s.retentionCheck;
@@ -686,7 +682,8 @@
         const total = raw + tax;
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
-        const baseForDeduction = (currentCalcBase === '含稅') ? total : raw;
+        // 修改：硬編碼鎖定為使用未稅基準
+        const baseForDeduction = raw;
 
         let cleanFee = 0;
         if (hasClean) {
@@ -704,13 +701,10 @@
         let net = 0;
         let appliedTaxForCalculation = tax; 
 
-        if (currentCalcBase === '含稅') {
-            net = (subtotal - retention) + adj;
-        } else {
-            const amountBeforeTax = subtotal - retention;
-            appliedTaxForCalculation = (currentDocType === '發票' && !isManualTax) ? Math.round(amountBeforeTax * 0.05) : tax;
-            net = amountBeforeTax + appliedTaxForCalculation + adj;
-        }
+        // 修改：邏輯固定為未稅基準
+        const amountBeforeTax = subtotal - retention;
+        appliedTaxForCalculation = (currentDocType === '發票' && !isManualTax) ? Math.round(amountBeforeTax * 0.05) : tax;
+        net = amountBeforeTax + appliedTaxForCalculation + adj;
         
         lastCalcState = { 
             raw, 
@@ -724,9 +718,12 @@
             adj, 
             adjNote, 
             isTaxInclusiveRetention: isTaxInclusiveRetentionChecked, 
-            calcBase: currentCalcBase, 
+            calcBase: '未稅', 
             cleanCheck: hasClean, 
-            retentionCheck: hasRetention 
+            retentionCheck: hasRetention,
+            isManualClean: isManualClean,
+            isManualRetention: isManualRetention,
+            isManualNet: false
         };
         
         document.getElementById('netAmount').value = net;
@@ -736,6 +733,8 @@
 
     function updateFormulaOnly() {
         const manualNet = parseFloat(document.getElementById('netAmount').value) || 0;
+        lastCalcState.isManualNet = true;
+        lastCalcState.net = manualNet;
         renderFormula(manualNet);
         renderDetail();
     }
@@ -765,15 +764,29 @@
 
         let visualSubtotal = baseVal;
         if (state.cleanCheck) {
-            const displayCleanFee = Math.round(baseVal * (state.cRate / 100));
-            html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>清潔費：${fmt.format(baseVal)} × ${state.cRate}% = <strong>-${fmt.format(displayCleanFee)}</strong></span></div>`;
+            const displayCleanFee = state.cleanFee;
+            // 修改：優化手動調整的顯示格式
+            let cleanSource = "";
+            if (state.isManualClean) {
+                cleanSource = `<strong>-${fmt.format(displayCleanFee)}</strong><small style="font-size: 0.85em; color: #666;">(手動調整)</small>`;
+                html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>清潔費：${cleanSource}</span></div>`;
+            } else {
+                cleanSource = `${fmt.format(baseVal)} × ${state.cRate}% = <strong>-${fmt.format(displayCleanFee)}</strong>`;
+                html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>清潔費：${cleanSource}</span></div>`;
+            }
             visualSubtotal = baseVal - displayCleanFee;
             html += `<div class="indent-row"><span class="subtotal-line">小計：${fmt.format(baseVal)} - ${fmt.format(displayCleanFee)} = <strong>${fmt.format(visualSubtotal)}</strong></span></div>`;
         }
 
         if (state.retentionCheck) {
-            const displayRetention = Math.round(visualSubtotal * (state.rRate / 100));
-            html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>保留款：${fmt.format(visualSubtotal)} × ${state.rRate}% = <strong>-${fmt.format(displayRetention)}</strong></span></div>`;
+            const displayRetention = state.retention;
+            // 修改：優化手動調整的顯示格式
+            if (state.isManualRetention) {
+                html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>保留款：<strong>-${fmt.format(displayRetention)}</strong><small style="font-size: 0.85em; color: #666;">(手動調整)</small></span></div>`;
+            } else {
+                html += `<div class="formula-row"><span class="formula-num">${getCircleNum()}</span><span>保留款：${fmt.format(visualSubtotal)} × ${state.rRate}% = <strong>-${fmt.format(displayRetention)}</strong></span></div>`;
+            }
+
             if (logicBase === '未稅') {
                 const subNet = visualSubtotal - displayRetention;
                 html += `<div class="indent-row"><span class="subtotal-line">淨額：${fmt.format(visualSubtotal)} - ${fmt.format(displayRetention)} = <strong>${fmt.format(subNet)}</strong></span></div>`;
@@ -804,54 +817,58 @@
         let finalSumForDisplay = 0;
         let hasOp = false;
         
-        if (logicBase === '含稅') {
-            payableProcess = `${fmt.format(visualSubtotal)}`;
-            finalSumForDisplay = visualSubtotal;
-            
-            const displayRetention = state.retentionCheck ? Math.round(visualSubtotal * (state.rRate / 100)) : 0;
-            if (state.retentionCheck && displayRetention !== 0) { 
-                payableProcess += `-${fmt.format(displayRetention)}`; 
-                finalSumForDisplay -= displayRetention;
-                hasOp = true;
-            }
-            if (adjDisplayNum !== 0) { 
-                payableProcess += `${adjDisplayNum > 0 ? '+' : '-'}${fmt.format(Math.abs(adjDisplayNum))}`; 
-                finalSumForDisplay += adjDisplayNum;
-                hasOp = true;
-            }
+        if (state.isManualNet) {
+            finalSumForDisplay = currentNet;
+            payableProcess = "手動修改最終金額";
+            hasOp = true;
         } else {
-            const displayRetention = state.retentionCheck ? Math.round(visualSubtotal * (state.rRate / 100)) : 0;
-            if (state.retentionCheck && displayRetention !== 0) {
-                payableProcess = `(${fmt.format(visualSubtotal)}-${fmt.format(displayRetention)})`;
-                hasOp = true;
-            } else {
+            if (logicBase === '含稅') {
                 payableProcess = `${fmt.format(visualSubtotal)}`;
-            }
-            
-            finalSumForDisplay = visualSubtotal - displayRetention;
-            const visualTax = (currentDocType === '發票') ? Math.round((visualSubtotal - displayRetention) * 0.05) : 0;
-            
-            if (visualTax > 0) { 
-                payableProcess += `+稅${fmt.format(visualTax)}`; 
-                finalSumForDisplay += visualTax;
-                hasOp = true;
-            }
-            if (adjDisplayNum !== 0) { 
-                payableProcess += `${adjDisplayNum > 0 ? '+' : '-'}${fmt.format(Math.abs(adjDisplayNum))}`; 
-                finalSumForDisplay += adjDisplayNum;
-                hasOp = true;
+                finalSumForDisplay = visualSubtotal;
+                
+                const displayRetention = state.retention;
+                if (state.retentionCheck && displayRetention !== 0) { 
+                    payableProcess += `-${fmt.format(displayRetention)}`; 
+                    finalSumForDisplay -= displayRetention;
+                    hasOp = true;
+                }
+                if (adjDisplayNum !== 0) { 
+                    payableProcess += `${adjDisplayNum > 0 ? '+' : '-'}${fmt.format(Math.abs(adjDisplayNum))}`; 
+                    finalSumForDisplay += adjDisplayNum;
+                    hasOp = true;
+                }
+            } else {
+                const displayRetention = state.retention;
+                if (state.retentionCheck && displayRetention !== 0) {
+                    payableProcess = `(${fmt.format(visualSubtotal)}-${fmt.format(displayRetention)})`;
+                    hasOp = true;
+                } else {
+                    payableProcess = `${fmt.format(visualSubtotal)}`;
+                }
+                
+                finalSumForDisplay = visualSubtotal - displayRetention;
+                const visualTax = (currentDocType === '發票') ? Math.round((visualSubtotal - displayRetention) * 0.05) : 0;
+                
+                if (visualTax > 0) { 
+                    payableProcess += `+稅${fmt.format(visualTax)}`; 
+                    finalSumForDisplay += visualTax;
+                    hasOp = true;
+                }
+                if (adjDisplayNum !== 0) { 
+                    payableProcess += `${adjDisplayNum > 0 ? '+' : '-'}${fmt.format(Math.abs(adjDisplayNum))}`; 
+                    finalSumForDisplay += adjDisplayNum;
+                    hasOp = true;
+                }
             }
         }
 
-        // --- 修正重複顯示邏輯：僅在 hasOp 為 true 時才顯示等號算式 ---
         const finalPayableText = hasOp ? `${payableProcess}=${fmt.format(finalSumForDisplay)}` : fmt.format(finalSumForDisplay);
         html += `<div class="formula-row"><span class="formula-num">●</span><span style="color: var(--primary); font-weight: bold;">本次應付金額：${finalPayableText}</span></div>`;
         
         document.getElementById('processFormula').innerHTML = html;
         
-        const netInput = document.getElementById('netAmount');
-        if (Math.abs(parseFloat(netInput.value) - finalSumForDisplay) >= 1) {
-            netInput.value = finalSumForDisplay;
+        if (!state.isManualNet) {
+            document.getElementById('netAmount').value = finalSumForDisplay;
         }
     }
 
@@ -949,7 +966,7 @@
         const settings = {
             docType: currentDocType,
             taxMode: currentTaxMode,
-            calcBase: currentCalcBase, 
+            calcBase: '未稅', 
             cleanCheck: document.getElementById('cleanCheck').checked,
             cleanRate: document.getElementById('cleanRate').value,
             retentionCheck: document.getElementById('retentionCheck').checked,
