@@ -165,10 +165,7 @@
         <div class="row">
             <div class="col">
                 <label>工程內容 (明細)</label>
-                <div style="display: flex; gap: 8px; width: 100%;">
-                    <input type="text" id="workNote" placeholder="例如：安西段-玹實-1F頂板紮筋">
-                    <button type="button" class="btn-info" style="padding: 5px 12px; font-size: 0.85rem; width: auto; white-space: nowrap; background: var(--accent);" onclick="copyLastPart(this)">✂️ 複製結尾</button>
-                </div>
+                <input type="text" id="workNote" placeholder="例如：安西段-玹實-1F頂板紮筋">
             </div>
         </div>
 
@@ -281,7 +278,14 @@
             <div class="payment-result" id="paymentDetail"></div>
         </div>
 
-        <button class="btn-save" onclick="saveData()">儲存此筆排程</button>
+        <div class="row" style="margin-top: 15px;">
+            <div class="col" style="flex: 1.2;">
+                <button type="button" class="btn-info" style="width: 100%; padding: 14px; font-size: 1rem; background: var(--accent);" onclick="copyLastPart(this)">✂️ 複製結尾</button>
+            </div>
+            <div class="col" style="flex: 2;">
+                <button class="btn-save" style="margin-top: 0;" onclick="saveData()">儲存此筆排程</button>
+            </div>
+        </div>
         <button class="btn-reset" onclick="location.reload()">重新整理</button>
     </div>
 </div>
