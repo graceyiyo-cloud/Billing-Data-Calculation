@@ -165,7 +165,7 @@
         <div class="row">
             <div class="col">
                 <label>工程內容 (明細)</label>
-                <input type="text" id="workNote" placeholder="例如：安西段-玹實-1F頂板紮筋">
+                <input type="text" id="workNote" placeholder="例如：安西段-明祥行-3/26-4/25粗工53工">
             </div>
         </div>
 
@@ -406,6 +406,13 @@
         isManualClean: false, isManualRetention: false, isManualNet: false 
     };
 
+    // 防止數字框滾動滾輪增減數值
+    window.addEventListener('wheel', function(e) {
+        if (document.activeElement.type === 'number') {
+            document.activeElement.blur();
+        }
+    });
+
     function setDocType(type) {
         currentDocType = type;
         const btns = document.querySelectorAll('#receiptToggle .toggle-btn');
@@ -481,13 +488,24 @@
         const note = document.getElementById('workNote').value.trim();
         if (!note) return;
         const parts = note.split('-');
-        let copyText = parts[parts.length - 1].trim();
+        
+        // 擷取邏輯：亞鼎取第三個-後，其餘取第二個-後
+        let skipIndex = note.includes("亞鼎") ? 3 : 2;
+        let copyText = parts.slice(skipIndex).join('-').trim();
+        
         const adjAmt = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
         const adjNote = document.getElementById('adjustmentNote').value.trim();
+        
         if (adjAmt !== 0 && adjNote) {
-            const sign = adjAmt > 0 ? "+" : ""; 
-            copyText += `${sign}${adjNote}${adjAmt}元`;
+            if (adjAmt < 0) {
+                // 扣款：-事由 絕對值金額元
+                copyText += `-${adjNote} ${Math.abs(adjAmt)}元`;
+            } else {
+                // 加款：+事由 金額元
+                copyText += `+${adjNote} ${adjAmt}元`;
+            }
         }
+        
         const textArea = document.createElement("textarea");
         textArea.value = copyText;
         document.body.appendChild(textArea);
@@ -646,7 +664,7 @@
         const retentionCheck = document.getElementById('retentionCheck');
         const isTaxInclusiveRetention = document.getElementById('isTaxInclusiveRetention');
         const taxInclusiveLabel = document.getElementById('taxInclusiveRetentionLabel');
-        const forceTaxView = document.getElementById('forceTaxInclusiveView').checked; // 勾選狀態
+        const forceTaxView = document.getElementById('forceTaxInclusiveView').checked; 
 
         if (!retentionCheck.checked) {
             isTaxInclusiveRetention.checked = false;
@@ -686,7 +704,6 @@
         const hasClean = document.getElementById('cleanCheck').checked;
         const cRate = parseFloat(document.getElementById('cleanRate').value) || 0;
         
-        // 修改：根據「以含稅額顯示過程」勾選狀態決定計算基準
         const baseForDeduction = forceTaxView ? total : raw;
 
         let cleanFee = 0;
@@ -705,7 +722,6 @@
         let net = 0;
         let appliedTaxForCalculation = tax; 
 
-        // 修改：若為含稅模式顯示，則計算邏輯也隨之切換為全額計算
         if (forceTaxView) {
             net = (subtotal - retention) + adj;
         } else {
@@ -731,7 +747,7 @@
             retentionCheck: hasRetention,
             isManualClean: isManualClean,
             isManualRetention: isManualRetention,
-            isManualNet: false // 常規計算時重置手動旗標
+            isManualNet: false 
         };
         
         document.getElementById('netAmount').value = net;
@@ -823,7 +839,6 @@
         let finalSumForDisplay = 0;
         let hasOp = false;
         
-        // 修正：不再覆蓋整串算式，而是完整顯示算式，僅在最後標記
         if (logicBase === '含稅') {
             payableProcess = `${fmt.format(visualSubtotal)}`;
             finalSumForDisplay = visualSubtotal;
@@ -863,7 +878,6 @@
             }
         }
 
-        // 修改：若為手動修改淨額，則顯示手動填寫的金額
         const actualPayable = state.isManualNet ? currentNet : finalSumForDisplay;
         const finalPayableText = hasOp ? `${payableProcess}=${fmt.format(actualPayable)}` : fmt.format(actualPayable);
         
@@ -963,9 +977,16 @@
 
         let baseDesc = workNote;
         if (hasRetention) baseDesc += `-保留${rRate}%`;
+        
+        // 優化儲存描述格式
         if (adjAmt !== 0 && adjNoteText) {
-            const sign = adjAmt > 0 ? "+" : "";
-            baseDesc += `${sign}${adjNoteText}${adjAmt}元`;
+            if (adjAmt < 0) {
+                // 扣款：-事由 絕對值金額元
+                baseDesc += `-${adjNoteText} ${Math.abs(adjAmt)}元`;
+            } else {
+                // 加款：+事由 金額元
+                baseDesc += `+${adjNoteText} ${adjAmt}元`;
+            }
         }
 
         const isInstallment = p1Pct < 100;
