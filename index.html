@@ -1048,15 +1048,45 @@
         if (keptTaxMode) setTaxMode(keptTaxMode);
     }
 
-    function toggleSort(field) {
-        currentSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
-        db.sort((a, b) => {
-            let valA = a[field] || "";
-            let valB = b[field] || "";
-            return currentSortOrder === 'asc' ? valA.localeCompare(valB, 'zh-TW') : valB.localeCompare(valA, 'zh-TW');
-        });
-        renderTable();
-    }
+function toggleSort(field) {
+    currentSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
+
+    // 1. 取得目前的篩選條件（公司、月份、日期）
+    const filterComp = document.getElementById('filterCompany').value;
+    const filterMonthVal = document.getElementById('filterMonth').value;
+    const filterDateVal = document.getElementById('filterDate').value.trim();
+
+    // 2. 找出畫面上符合篩選條件的資料
+    const filteredItems = db.filter(item => {
+        const matchComp = (filterComp === "全部" || item.company === filterComp);
+        const matchMon = (filterMonthVal === "全部" || item.saveMonth === filterMonthVal);
+        const matchDate = (!filterDateVal || item.date.includes(filterDateVal));
+        return matchComp && matchMon && matchDate;
+    });
+
+    // 3. 只針對這些篩選出來的資料進行排序
+    filteredItems.sort((a, b) => {
+        let valA = a[field] || "";
+        let valB = b[field] || "";
+        return currentSortOrder === 'asc' ? valA.localeCompare(valB, 'zh-TW') : valB.localeCompare(valA, 'zh-TW');
+    });
+
+    // 4. 將排序後的結果，依序塞回總資料庫中屬於它們原本的位子（不影響其他未顯示的資料）
+    let filterIndex = 0;
+    db = db.map(item => {
+        const matchComp = (filterComp === "全部" || item.company === filterComp);
+        const matchMon = (filterMonthVal === "全部" || item.saveMonth === filterMonthVal);
+        const matchDate = (!filterDateVal || item.date.includes(filterDateVal));
+        if (matchComp && matchMon && matchDate) {
+            return filteredItems[filterIndex++];
+        }
+        return item;
+    });
+
+    // 5. 儲存變更並重新渲染畫面
+    localStorage.setItem('paymentRecords', JSON.stringify(db));
+    renderTable();
+}
 
     function toggleItem(id, isChecked) {
         if (isChecked) checkedIds.add(id);
